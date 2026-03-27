@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signIn, signOut } from "next-auth/react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Settings, Trophy, Target, TrendingUp } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -33,9 +34,16 @@ export default function ProfilePage() {
         <p className="text-sm text-neutral mb-6 text-center">
           Sign in to track your matches and compete on the leaderboard
         </p>
-        <Button onClick={() => signIn("google")} size="lg">
-          Sign in with Google
-        </Button>
+        <div className="space-y-3 w-full max-w-xs">
+          <Button onClick={() => signIn()} fullWidth size="lg">
+            Sign in
+          </Button>
+          <Link href="/auth/register">
+            <Button variant="secondary" fullWidth size="lg">
+              Create account
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
