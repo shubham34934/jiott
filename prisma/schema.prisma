@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  player        Player?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Player {
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String              @unique @db.ObjectId
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating              Int                 @default(1000)
+  matchesPlayed       Int                 @default(0)
+  matchesWon          Int                 @default(0)
+  matchParticipations MatchParticipant[]
+  teamsAsPlayer1      Team[]              @relation("TeamPlayer1")
+  teamsAsPlayer2      Team[]              @relation("TeamPlayer2")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+enum MatchType {
+  SINGLES
+  DOUBLES
+}
+
+enum MatchStatus {
+  ONGOING
+  COMPLETED
+  DISPUTED
+}
+
+model Match {
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  type            MatchType
+  status          MatchStatus        @default(ONGOING)
+  totalSets       Int                @default(3)
+  pointsPerSet    Int                @default(11)
+  createdBy       String
+  participants    MatchParticipant[]
+  sets            Set[]
+  eventLogs       EventLog[]
+  tournamentMatch TournamentMatch?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+enum TeamSide {
+  A
+  B
+}
+
+model MatchParticipant {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  matchId  String   @db.ObjectId
+  playerId String   @db.ObjectId
+  team     TeamSide
+  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@unique([matchId, playerId])
+}
+
+model Set {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId    String @db.ObjectId
+  setNumber  Int
+  teamAScore Int    @default(0)
+  teamBScore Int    @default(0)
+  match      Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, setNumber])
+}
+
+model EventLog {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  entityType    String
+  entityId      String
+  action        String
+  previousValue Json?
+  newValue      Json?
+  updatedBy     String
+  matchId       String?  @db.ObjectId
+  match         Match?   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+}
+
+enum TournamentStatus {
+  CREATED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Tournament {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  type      String           @default("SINGLE_ELIMINATION")
+  matchType MatchType
+  status    TournamentStatus @default(CREATED)
+  teams     Team[]
+  matches   TournamentMatch[]
+  createdBy String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model Team {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  tournamentId String            @db.ObjectId
+  name         String?
+  player1Id    String            @db.ObjectId
+  player2Id    String?           @db.ObjectId
+  tournament   Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1      Player            @relation("TeamPlayer1", fields: [player1Id], references: [id])
+  player2      Player?           @relation("TeamPlayer2", fields: [player2Id], references: [id])
+  matchesAsA   TournamentMatch[] @relation("TournamentMatchTeamA")
+  matchesAsB   TournamentMatch[] @relation("TournamentMatchTeamB")
+  matchesWon   TournamentMatch[] @relation("TournamentMatchWinner")
+
+  @@unique([tournamentId, player1Id])
+}
+
+enum TournamentMatchStatus {
+  LOCKED
+  READY
+  ONGOING
+  COMPLETED
+}
+
+model TournamentMatch {
+  id           String                @id @default(auto()) @map("_id") @db.ObjectId
+  tournamentId String                @db.ObjectId
+  round        Int
+  position     Int
+  teamAId      String?               @db.ObjectId
+  teamBId      String?               @db.ObjectId
+  winnerId     String?               @db.ObjectId
+  matchId      String?               @unique @db.ObjectId
+  status       TournamentMatchStatus @default(LOCKED)
+  tournament   Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  teamA        Team?                 @relation("TournamentMatchTeamA", fields: [teamAId], references: [id])
+  teamB        Team?                 @relation("TournamentMatchTeamB", fields: [teamBId], references: [id])
+  winner       Team?                 @relation("TournamentMatchWinner", fields: [winnerId], references: [id])
+  match        Match?                @relation(fields: [matchId], references: [id])
+  dependedOnBy MatchDependency[]     @relation("DependsOn")
+  dependsOn    MatchDependency[]     @relation("DependentMatch")
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+}
+
+model MatchDependency {
+  id               String          @id @default(auto()) @map("_id") @db.ObjectId
+  matchId          String          @db.ObjectId
+  dependsOnMatchId String          @db.ObjectId
+  slot             TeamSide
+  match            TournamentMatch @relation("DependentMatch", fields: [matchId], references: [id], onDelete: Cascade)
+  dependsOnMatch   TournamentMatch @relation("DependsOn", fields: [dependsOnMatchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, slot])
+}

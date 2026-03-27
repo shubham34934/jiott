@@ -1,0 +1,119 @@
+"use client";
+
+import Link from "next/link";
+import { CheckCircle2, Clock } from "lucide-react";
+
+interface Player {
+  id: string;
+  user: { name: string | null; image: string | null };
+}
+
+interface Participant {
+  team: "A" | "B";
+  player: Player;
+}
+
+interface SetData {
+  teamAScore: number;
+  teamBScore: number;
+}
+
+interface MatchCardProps {
+  id: string;
+  status: "ONGOING" | "COMPLETED" | "DISPUTED";
+  participants: Participant[];
+  sets: SetData[];
+  createdAt: string;
+  linkPrefix?: string;
+}
+
+export function MatchCard({
+  id,
+  status,
+  participants,
+  sets,
+  createdAt,
+  linkPrefix = "/matches",
+}: MatchCardProps) {
+  const teamA = participants.filter((p) => p.team === "A");
+  const teamB = participants.filter((p) => p.team === "B");
+
+  let teamASetsWon = 0;
+  let teamBSetsWon = 0;
+  for (const set of sets) {
+    if (set.teamAScore > set.teamBScore) teamASetsWon++;
+    else if (set.teamBScore > set.teamAScore) teamBSetsWon++;
+  }
+
+  const teamAWon = status === "COMPLETED" && teamASetsWon > teamBSetsWon;
+  const teamBWon = status === "COMPLETED" && teamBSetsWon > teamASetsWon;
+
+  const teamANames = teamA
+    .map((p) => p.player.user.name || "Unknown")
+    .join(" & ");
+  const teamBNames = teamB
+    .map((p) => p.player.user.name || "Unknown")
+    .join(" & ");
+
+  const date = new Date(createdAt).toISOString().split("T")[0];
+
+  return (
+    <Link href={`${linkPrefix}/${id}`} className="block">
+      <div className="bg-surface rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between mb-3">
+          {status === "COMPLETED" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
+              <CheckCircle2 size={14} className="text-success" />
+              Completed
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
+              <Clock size={14} />
+              Ongoing
+            </span>
+          )}
+          <span className="text-xs text-neutral">{date}</span>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-sm ${
+                teamAWon
+                  ? "font-semibold text-primary"
+                  : "text-text-primary"
+              }`}
+            >
+              {teamANames}
+            </span>
+            <span
+              className={`text-lg font-bold tabular-nums ${
+                teamAWon ? "text-text-primary" : "text-neutral"
+              }`}
+            >
+              {teamASetsWon}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-sm ${
+                teamBWon
+                  ? "font-semibold text-primary"
+                  : "text-text-primary"
+              }`}
+            >
+              {teamBNames}
+            </span>
+            <span
+              className={`text-lg font-bold tabular-nums ${
+                teamBWon ? "text-text-primary" : "text-neutral"
+              }`}
+            >
+              {teamBSetsWon}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
