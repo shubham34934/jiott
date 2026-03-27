@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -45,7 +46,10 @@ export default function RootLayout({
       <body className="min-h-dvh bg-background">
         <AuthProvider>
           <QueryProvider>
-            <main className="pb-20 max-w-lg mx-auto">{children}</main>
+            <main className="pb-20 max-w-lg mx-auto">
+              {children}
+              <Footer />
+            </main>
             <BottomNav />
             <ServiceWorkerRegister />
           </QueryProvider>
