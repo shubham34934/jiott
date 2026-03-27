@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   description: "Track table tennis matches, players, ratings, and tournaments",
   manifest: "/manifest.json",
   applicationName: "JioTT",
+  verification: {
+    google: "FyWsFQdkWVWKyOi_Mjqnp2kbZmFNjzNTS9rR13V2ryk",
+  },
   keywords: ["table tennis", "ping pong", "match tracker", "leaderboard"],
   appleWebApp: {
     capable: true,
