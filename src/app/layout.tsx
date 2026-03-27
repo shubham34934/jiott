@@ -12,10 +12,19 @@ export const metadata: Metadata = {
   title: "JioTT - Table Tennis Tracker",
   description: "Track table tennis matches, players, ratings, and tournaments",
   manifest: "/manifest.json",
+  applicationName: "JioTT",
+  keywords: ["table tennis", "ping pong", "match tracker", "leaderboard"],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "JioTT",
+  },
+  openGraph: {
+    title: "JioTT - Table Tennis Tracker",
+    description: "Track table tennis matches, players, ratings, and tournaments",
+    url: "https://jiott-eight.vercel.app",
+    siteName: "JioTT",
+    type: "website",
   },
 };
 

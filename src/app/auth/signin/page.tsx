@@ -2,6 +2,7 @@
 
 import { signIn } from "next-auth/react";
 import { Trophy } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/Button";
 
 export default function SignInPage() {
@@ -44,6 +45,17 @@ export default function SignInPage() {
         </svg>
         Sign in with Google
       </Button>
+
+      <p className="text-xs text-neutral text-center mt-6 max-w-xs">
+        By signing in, you agree to our{" "}
+        <Link href="/terms" className="text-primary underline">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-primary underline">
+          Privacy Policy
+        </Link>
+      </p>
     </div>
   );
 }
