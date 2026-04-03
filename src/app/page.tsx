@@ -28,14 +28,14 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="space-y-3 mb-8">
-        <Link href={session ? "/matches/new" : "/auth/signin"}>
+      <div className="flex flex-col gap-4 mb-8">
+        <Link href={session ? "/matches/new" : "/auth/signin"} className="block">
           <Button fullWidth size="lg">
             <Zap size={18} />
             Start Match
           </Button>
         </Link>
-        <Link href={session ? "/tournaments/new" : "/auth/signin"}>
+        <Link href={session ? "/tournaments/new" : "/auth/signin"} className="block">
           <Button variant="secondary" fullWidth size="lg">
             <Plus size={18} />
             Create Tournament

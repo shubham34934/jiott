@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -44,6 +44,17 @@ interface MatchData {
   createdAt: string;
 }
 
+function isValidSetScore(a: number, b: number, target: number): boolean {
+  if (a < 0 || b < 0) return false;
+  const winner = Math.max(a, b);
+  const loser = Math.min(a, b);
+  if (winner < target) return false;
+  if (a === b) return false;
+  if (winner === target && loser < target - 1) return true;
+  if (winner > target && loser >= target - 1) return winner - loser === 2;
+  return false;
+}
+
 export default function MatchDetailPage({
   params,
 }: {
@@ -51,27 +62,29 @@ export default function MatchDetailPage({
 }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
-  const [pendingScores, setPendingScores] = useState<
-    Record<number, { teamAScore: number; teamBScore: number }>
-  >({});
 
   const { data: match, isLoading } = useQuery<MatchData>({
     queryKey: ["match", id],
     queryFn: () => fetch(`/api/matches/${id}`).then((r) => r.json()),
   });
 
+  const savingSetRef = { current: -1 };
+
   const updateScore = useMutation({
     mutationFn: (data: {
       setNumber: number;
       teamAScore: number;
       teamBScore: number;
-    }) =>
-      fetch(`/api/matches/${id}/sets`, {
+    }) => {
+      savingSetRef.current = data.setNumber;
+      return fetch(`/api/matches/${id}/sets`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      }).then((r) => r.json()),
-    onSuccess: () => {
+      }).then((r) => r.json());
+    },
+    onSettled: () => {
+      savingSetRef.current = -1;
       queryClient.invalidateQueries({ queryKey: ["match", id] });
     },
   });
@@ -110,12 +123,10 @@ export default function MatchDetailPage({
   let teamASetsWon = 0;
   let teamBSetsWon = 0;
   for (const set of match.sets) {
-    const scores = pendingScores[set.setNumber] || {
-      teamAScore: set.teamAScore,
-      teamBScore: set.teamBScore,
-    };
-    if (scores.teamAScore > scores.teamBScore) teamASetsWon++;
-    else if (scores.teamBScore > scores.teamAScore) teamBSetsWon++;
+    if (isValidSetScore(set.teamAScore, set.teamBScore, match.pointsPerSet)) {
+      if (set.teamAScore > set.teamBScore) teamASetsWon++;
+      else if (set.teamBScore > set.teamAScore) teamBSetsWon++;
+    }
   }
 
   const teamAWon =
@@ -125,15 +136,11 @@ export default function MatchDetailPage({
 
   const date = new Date(match.createdAt).toISOString().split("T")[0];
 
-  const handleScoreChange = (
+  const handleSaveScore = (
     setNumber: number,
     teamAScore: number,
     teamBScore: number
   ) => {
-    setPendingScores((prev) => ({
-      ...prev,
-      [setNumber]: { teamAScore, teamBScore },
-    }));
     updateScore.mutate({ setNumber, teamAScore, teamBScore });
   };
 
@@ -217,26 +224,22 @@ export default function MatchDetailPage({
 
         <h2 className="text-lg font-bold mb-3">Sets</h2>
         <div className="space-y-3 mb-6">
-          {match.sets.map((set) => {
-            const scores = pendingScores[set.setNumber] || {
-              teamAScore: set.teamAScore,
-              teamBScore: set.teamBScore,
-            };
-            return (
-              <SetScoreRow
-                key={set.id}
-                setNumber={set.setNumber}
-                teamAScore={scores.teamAScore}
-                teamBScore={scores.teamBScore}
-                teamAName={teamANames}
-                teamBName={teamBNames}
-                editable={match.status === "ONGOING"}
-                onScoreChange={(a, b) =>
-                  handleScoreChange(set.setNumber, a, b)
-                }
-              />
-            );
-          })}
+          {match.sets.map((set) => (
+            <SetScoreRow
+              key={set.id}
+              setNumber={set.setNumber}
+              teamAScore={set.teamAScore}
+              teamBScore={set.teamBScore}
+              pointsPerSet={match.pointsPerSet}
+              teamAName={teamANames}
+              teamBName={teamBNames}
+              editable={match.status === "ONGOING"}
+              isSaving={updateScore.isPending && savingSetRef.current === set.setNumber}
+              onSaveScore={(a, b) =>
+                handleSaveScore(set.setNumber, a, b)
+              }
+            />
+          ))}
         </div>
 
         {match.status === "ONGOING" && canComplete() && (

@@ -78,8 +78,19 @@ async function completeMatch(matchId: string, userId: string) {
   let teamBWins = 0;
 
   for (const set of match.sets) {
-    if (set.teamAScore > set.teamBScore) teamAWins++;
-    else if (set.teamBScore > set.teamAScore) teamBWins++;
+    const a = set.teamAScore;
+    const b = set.teamBScore;
+    const target = match.pointsPerSet;
+    const winner = Math.max(a, b);
+    const loser = Math.min(a, b);
+    const isValid =
+      winner >= target &&
+      a !== b &&
+      ((winner === target && loser < target - 1) ||
+        (winner > target && loser >= target - 1 && winner - loser === 2));
+    if (!isValid) continue;
+    if (a > b) teamAWins++;
+    else teamBWins++;
   }
 
   const requiredWins = Math.ceil(match.totalSets / 2);
