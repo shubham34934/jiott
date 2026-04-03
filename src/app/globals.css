@@ -28,6 +28,13 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/* Mobile: reduce native overscroll so custom pull-to-refresh can own the gesture */
+@media (max-width: 768px) {
+  html {
+    overscroll-behavior-y: contain;
+  }
+}
+
 input, select, textarea {
   font-size: 16px;
 }

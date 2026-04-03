@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,12 +50,14 @@ export default function RootLayout({
       <body className="min-h-dvh bg-background">
         <AuthProvider>
           <QueryProvider>
-            <main className="pb-20 max-w-lg mx-auto">
-              {children}
-              {/* <Footer /> */}
-            </main>
-            <BottomNav />
-            <ServiceWorkerRegister />
+            <PullToRefresh>
+              <main className="pb-20 max-w-lg mx-auto">
+                {children}
+                {/* <Footer /> */}
+              </main>
+              <BottomNav />
+              <ServiceWorkerRegister />
+            </PullToRefresh>
           </QueryProvider>
         </AuthProvider>
       </body>
