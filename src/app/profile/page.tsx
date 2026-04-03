@@ -110,6 +110,7 @@ export default function ProfilePage() {
               match: {
                 id: string;
                 status: "ONGOING" | "COMPLETED" | "DISPUTED";
+                isFriendly?: boolean;
                 participants: Array<{
                   team: "A" | "B";
                   player: {
@@ -125,6 +126,7 @@ export default function ProfilePage() {
                 key={mp.match.id}
                 id={mp.match.id}
                 status={mp.match.status}
+                isFriendly={mp.match.isFriendly}
                 participants={mp.match.participants}
                 sets={mp.match.sets}
                 createdAt={mp.match.createdAt}

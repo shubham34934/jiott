@@ -38,6 +38,7 @@ interface MatchData {
   status: "ONGOING" | "COMPLETED" | "DISPUTED";
   totalSets: number;
   pointsPerSet: number;
+  isFriendly: boolean;
   participants: Participant[];
   sets: SetData[];
   eventLogs: EventLogEntry[];
@@ -161,7 +162,14 @@ export default function MatchDetailPage({
             <p className="text-xs text-neutral">{date}</p>
           </div>
         </div>
-        <StatusBadge status={match.status} />
+        <div className="flex items-center gap-2">
+          {match.isFriendly && (
+            <span className="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-2.5 py-1">
+              Friendly
+            </span>
+          )}
+          <StatusBadge status={match.status} />
+        </div>
       </div>
 
       <div className="px-4 pt-4">

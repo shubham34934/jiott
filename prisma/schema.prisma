@@ -102,6 +102,7 @@ model Match {
   status          MatchStatus        @default(ONGOING)
   totalSets       Int                @default(3)
   pointsPerSet    Int                @default(11)
+  isFriendly      Boolean            @default(false)
   createdBy       String
   participants    MatchParticipant[]
   sets            Set[]

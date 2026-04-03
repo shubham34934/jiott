@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Clock } from "lucide-react";
+import { CheckCircle2, Clock, Trophy } from "lucide-react";
 
 interface Player {
   id: string;
@@ -24,6 +24,7 @@ interface MatchCardProps {
   participants: Participant[];
   sets: SetData[];
   createdAt: string;
+  isFriendly?: boolean;
   linkPrefix?: string;
 }
 
@@ -33,6 +34,7 @@ export function MatchCard({
   participants,
   sets,
   createdAt,
+  isFriendly = false,
   linkPrefix = "/matches",
 }: MatchCardProps) {
   const teamA = participants.filter((p) => p.team === "A");
@@ -61,34 +63,42 @@ export function MatchCard({
     <Link href={`${linkPrefix}/${id}`} className="block">
       <div className="bg-surface rounded-xl border border-border p-4">
         <div className="flex items-center justify-between mb-3">
-          {status === "COMPLETED" ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
-              <CheckCircle2 size={14} className="text-success" />
-              Completed
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
-              <Clock size={14} />
-              Ongoing
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {status === "COMPLETED" ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
+                <CheckCircle2 size={14} className="text-success" />
+                Completed
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
+                <Clock size={14} />
+                Ongoing
+              </span>
+            )}
+            {isFriendly && (
+              <span className="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-2.5 py-1">
+                Friendly
+              </span>
+            )}
+          </div>
           <span className="text-xs text-neutral">{date}</span>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span
-              className={`text-sm ${
+              className={`text-sm flex items-center gap-1.5 ${
                 teamAWon
-                  ? "font-semibold text-primary"
+                  ? "font-bold text-green-500"
                   : "text-text-primary"
               }`}
             >
               {teamANames}
+              {teamAWon && <Trophy size={14} className="text-black shrink-0" />}
             </span>
             <span
               className={`text-lg font-bold tabular-nums ${
-                teamAWon ? "text-text-primary" : "text-neutral"
+                teamAWon ? "text-green-500" : "text-neutral"
               }`}
             >
               {teamASetsWon}
@@ -96,17 +106,18 @@ export function MatchCard({
           </div>
           <div className="flex items-center justify-between">
             <span
-              className={`text-sm ${
+              className={`text-sm flex items-center gap-1.5 ${
                 teamBWon
-                  ? "font-semibold text-primary"
+                  ? "font-bold text-green-500"
                   : "text-text-primary"
               }`}
             >
               {teamBNames}
+              {teamBWon && <Trophy size={14} className="text-black shrink-0" />}
             </span>
             <span
               className={`text-lg font-bold tabular-nums ${
-                teamBWon ? "text-text-primary" : "text-neutral"
+                teamBWon ? "text-green-500" : "text-neutral"
               }`}
             >
               {teamBSetsWon}

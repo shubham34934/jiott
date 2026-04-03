@@ -6,9 +6,12 @@ import { authOptions } from "@/lib/auth";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
+  const friendly = searchParams.get("friendly");
   const limit = parseInt(searchParams.get("limit") || "20");
 
-  const where = status ? { status: status as "ONGOING" | "COMPLETED" } : {};
+  const where: Record<string, unknown> = {};
+  if (status) where.status = status as "ONGOING" | "COMPLETED";
+  if (friendly === "true") where.isFriendly = true;
 
   const matches = await prisma.match.findMany({
     where,
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { type, playerIds, totalSets, pointsPerSet } = body;
+  const { type, playerIds, totalSets, pointsPerSet, isFriendly } = body;
 
   if (type === "SINGLES" && playerIds.length !== 2) {
     return NextResponse.json(
@@ -66,6 +69,7 @@ export async function POST(req: Request) {
       type,
       totalSets: totalSets || 3,
       pointsPerSet: pointsPerSet || 11,
+      isFriendly: isFriendly || false,
       createdBy: session.user.id,
       participants: {
         create: playerIds.map((playerId: string, index: number) => ({
@@ -100,7 +104,7 @@ export async function POST(req: Request) {
       entityType: "Match",
       entityId: match.id,
       action: "CREATED",
-      newValue: { type, playerIds, totalSets, pointsPerSet },
+      newValue: { type, playerIds, totalSets, pointsPerSet, isFriendly: isFriendly || false },
       updatedBy: session.user.id,
       matchId: match.id,
     },

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MatchCard } from "@/components/MatchCard";
 
-type FilterTab = "all" | "ONGOING" | "COMPLETED";
+type FilterTab = "all" | "ONGOING" | "COMPLETED" | "FRIENDLY";
 
 export default function MatchesPage() {
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -12,10 +12,14 @@ export default function MatchesPage() {
   const { data: matches, isLoading } = useQuery({
     queryKey: ["matches", filter],
     queryFn: () => {
-      const url =
-        filter === "all"
-          ? "/api/matches"
-          : `/api/matches?status=${filter}`;
+      const params = new URLSearchParams();
+      if (filter === "ONGOING" || filter === "COMPLETED") {
+        params.set("status", filter);
+      } else if (filter === "FRIENDLY") {
+        params.set("friendly", "true");
+      }
+      const qs = params.toString();
+      const url = qs ? `/api/matches?${qs}` : "/api/matches";
       return fetch(url).then((r) => r.json());
     },
   });
@@ -24,13 +28,14 @@ export default function MatchesPage() {
     { key: "all", label: "All" },
     { key: "ONGOING", label: "Ongoing" },
     { key: "COMPLETED", label: "Completed" },
+    { key: "FRIENDLY", label: "Friendly" },
   ];
 
   return (
     <div className="px-4 pt-8">
       <h1 className="text-2xl font-bold text-text-primary mb-4">Matches</h1>
 
-      <div className="flex rounded-xl bg-surface border border-border p-1 mb-6">
+      <div className="flex rounded-xl bg-surface border border-border p-1 mb-6" suppressHydrationWarning>
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -61,6 +66,7 @@ export default function MatchesPage() {
           (match: {
             id: string;
             status: "ONGOING" | "COMPLETED" | "DISPUTED";
+            isFriendly?: boolean;
             participants: Array<{
               team: "A" | "B";
               player: {
@@ -75,6 +81,7 @@ export default function MatchesPage() {
               key={match.id}
               id={match.id}
               status={match.status}
+              isFriendly={match.isFriendly}
               participants={match.participants}
               sets={match.sets}
               createdAt={match.createdAt}

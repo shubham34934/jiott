@@ -107,44 +107,46 @@ async function completeMatch(matchId: string, userId: string) {
   const winners = match.participants.filter((p) => p.team === winningTeam);
   const losers = match.participants.filter((p) => p.team === losingTeam);
 
-  const winnerRatings = winners.map((w) => w.player.rating);
-  const loserRatings = losers.map((l) => l.player.rating);
-
-  const avgWinnerRating = calculateTeamRating(winnerRatings);
-  const avgLoserRating = calculateTeamRating(loserRatings);
-
-  const { winnerNew, loserNew } = calculateEloChange(
-    avgWinnerRating,
-    avgLoserRating
-  );
-
-  const winnerDelta = winnerNew - avgWinnerRating;
-  const loserDelta = loserNew - avgLoserRating;
-
   await prisma.match.update({
     where: { id: matchId },
     data: { status: "COMPLETED" },
   });
 
-  for (const winner of winners) {
-    await prisma.player.update({
-      where: { id: winner.playerId },
-      data: {
-        rating: { increment: winnerDelta },
-        matchesPlayed: { increment: 1 },
-        matchesWon: { increment: 1 },
-      },
-    });
-  }
+  if (!match.isFriendly) {
+    const winnerRatings = winners.map((w) => w.player.rating);
+    const loserRatings = losers.map((l) => l.player.rating);
 
-  for (const loser of losers) {
-    await prisma.player.update({
-      where: { id: loser.playerId },
-      data: {
-        rating: { increment: loserDelta },
-        matchesPlayed: { increment: 1 },
-      },
-    });
+    const avgWinnerRating = calculateTeamRating(winnerRatings);
+    const avgLoserRating = calculateTeamRating(loserRatings);
+
+    const { winnerNew, loserNew } = calculateEloChange(
+      avgWinnerRating,
+      avgLoserRating
+    );
+
+    const winnerDelta = winnerNew - avgWinnerRating;
+    const loserDelta = loserNew - avgLoserRating;
+
+    for (const winner of winners) {
+      await prisma.player.update({
+        where: { id: winner.playerId },
+        data: {
+          rating: { increment: winnerDelta },
+          matchesPlayed: { increment: 1 },
+          matchesWon: { increment: 1 },
+        },
+      });
+    }
+
+    for (const loser of losers) {
+      await prisma.player.update({
+        where: { id: loser.playerId },
+        data: {
+          rating: { increment: loserDelta },
+          matchesPlayed: { increment: 1 },
+        },
+      });
+    }
   }
 
   await prisma.eventLog.create({

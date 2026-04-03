@@ -74,6 +74,7 @@ export default function HomePage() {
             (match: {
               id: string;
               status: "ONGOING" | "COMPLETED" | "DISPUTED";
+              isFriendly?: boolean;
               participants: Array<{
                 team: "A" | "B";
                 player: {
@@ -88,6 +89,7 @@ export default function HomePage() {
                 key={match.id}
                 id={match.id}
                 status={match.status}
+                isFriendly={match.isFriendly}
                 participants={match.participants}
                 sets={match.sets}
                 createdAt={match.createdAt}

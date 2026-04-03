@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, User, Users } from "lucide-react";
+import { ArrowLeft, User, Users, Search, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 
@@ -23,6 +23,7 @@ export default function NewMatchPage() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [totalSets, setTotalSets] = useState(3);
   const [pointsPerSet, setPointsPerSet] = useState(11);
+  const [isFriendly, setIsFriendly] = useState(false);
 
   const { data: players } = useQuery<PlayerOption[]>({
     queryKey: ["players"],
@@ -35,6 +36,7 @@ export default function NewMatchPage() {
       playerIds: string[];
       totalSets: number;
       pointsPerSet: number;
+      isFriendly: boolean;
     }) =>
       fetch("/api/matches", {
         method: "POST",
@@ -48,14 +50,16 @@ export default function NewMatchPage() {
 
   const requiredPlayers = matchType === "DOUBLES" ? 4 : 2;
 
-  const togglePlayer = (id: string) => {
-    setSelectedPlayers((prev) =>
-      prev.includes(id)
-        ? prev.filter((p) => p !== id)
-        : prev.length < requiredPlayers
-        ? [...prev, id]
-        : prev
-    );
+  const setPlayerAtSlot = (index: number, playerId: string | null) => {
+    setSelectedPlayers((prev) => {
+      const next = [...prev];
+      if (playerId === null) {
+        next.splice(index, 1, "");
+      } else {
+        next[index] = playerId;
+      }
+      return next;
+    });
   };
 
   const handleStart = () => {
@@ -65,6 +69,7 @@ export default function NewMatchPage() {
       playerIds: selectedPlayers,
       totalSets,
       pointsPerSet,
+      isFriendly,
     });
   };
 
@@ -100,7 +105,7 @@ export default function NewMatchPage() {
               <button
                 onClick={() => {
                   setMatchType("SINGLES");
-                  setSelectedPlayers([]);
+                  setSelectedPlayers(["", ""]);
                   setStep(2);
                 }}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
@@ -115,7 +120,7 @@ export default function NewMatchPage() {
               <button
                 onClick={() => {
                   setMatchType("DOUBLES");
-                  setSelectedPlayers([]);
+                  setSelectedPlayers(["", "", "", ""]);
                   setStep(2);
                 }}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
@@ -134,49 +139,68 @@ export default function NewMatchPage() {
         {step === 2 && (
           <div>
             <h2 className="text-xl font-bold mb-2">Select players</h2>
-            <p className="text-sm text-neutral mb-1">
-              Choose {requiredPlayers} players ({selectedPlayers.length}/
-              {requiredPlayers} selected)
+            <p className="text-sm text-neutral mb-6">
+              Search and pick {requiredPlayers} players
             </p>
-            {matchType === "DOUBLES" && (
-              <p className="text-xs text-neutral mb-4">
-                First 2 = Team A, Last 2 = Team B
-              </p>
-            )}
 
-            <div className="space-y-2 mb-6 max-h-[50vh] overflow-y-auto">
-              {players?.map((p) => {
-                const selected = selectedPlayers.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => togglePlayer(p.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
-                      selected
-                        ? "border-primary bg-blue-50"
-                        : "border-border bg-surface"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                          selected
-                            ? "bg-primary text-white"
-                            : "bg-background text-neutral"
-                        }`}
-                      >
-                        {selectedPlayers.indexOf(p.id) + 1 || ""}
-                      </div>
-                      <span className="font-medium text-sm">
-                        {p.user.name}
-                      </span>
-                    </div>
-                    <span className="text-xs text-neutral">
-                      Rating: {p.rating}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="space-y-4 mb-6">
+              {matchType === "SINGLES" ? (
+                <>
+                  <PlayerSearchInput
+                    label="Player 1 (Team A)"
+                    players={players || []}
+                    excludeIds={selectedPlayers.filter(Boolean)}
+                    selectedId={selectedPlayers[0] || null}
+                    onSelect={(id) => setPlayerAtSlot(0, id)}
+                    onClear={() => setPlayerAtSlot(0, null)}
+                  />
+                  <PlayerSearchInput
+                    label="Player 2 (Team B)"
+                    players={players || []}
+                    excludeIds={selectedPlayers.filter(Boolean)}
+                    selectedId={selectedPlayers[1] || null}
+                    onSelect={(id) => setPlayerAtSlot(1, id)}
+                    onClear={() => setPlayerAtSlot(1, null)}
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold text-neutral uppercase tracking-wide">Team A</p>
+                  <PlayerSearchInput
+                    label="Team A — Player 1"
+                    players={players || []}
+                    excludeIds={selectedPlayers.filter(Boolean)}
+                    selectedId={selectedPlayers[0] || null}
+                    onSelect={(id) => setPlayerAtSlot(0, id)}
+                    onClear={() => setPlayerAtSlot(0, null)}
+                  />
+                  <PlayerSearchInput
+                    label="Team A — Player 2"
+                    players={players || []}
+                    excludeIds={selectedPlayers.filter(Boolean)}
+                    selectedId={selectedPlayers[1] || null}
+                    onSelect={(id) => setPlayerAtSlot(1, id)}
+                    onClear={() => setPlayerAtSlot(1, null)}
+                  />
+                  <p className="text-xs font-semibold text-neutral uppercase tracking-wide pt-2">Team B</p>
+                  <PlayerSearchInput
+                    label="Team B — Player 1"
+                    players={players || []}
+                    excludeIds={selectedPlayers.filter(Boolean)}
+                    selectedId={selectedPlayers[2] || null}
+                    onSelect={(id) => setPlayerAtSlot(2, id)}
+                    onClear={() => setPlayerAtSlot(2, null)}
+                  />
+                  <PlayerSearchInput
+                    label="Team B — Player 2"
+                    players={players || []}
+                    excludeIds={selectedPlayers.filter(Boolean)}
+                    selectedId={selectedPlayers[3] || null}
+                    onSelect={(id) => setPlayerAtSlot(3, id)}
+                    onClear={() => setPlayerAtSlot(3, null)}
+                  />
+                </>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -185,7 +209,7 @@ export default function NewMatchPage() {
               </Button>
               <Button
                 fullWidth
-                disabled={selectedPlayers.length !== requiredPlayers}
+                disabled={selectedPlayers.filter(Boolean).length !== requiredPlayers}
                 onClick={() => setStep(3)}
               >
                 Continue
@@ -243,6 +267,29 @@ export default function NewMatchPage() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <button
+                  onClick={() => setIsFriendly(!isFriendly)}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                    isFriendly
+                      ? "border-primary bg-blue-50"
+                      : "border-border bg-surface"
+                  }`}
+                >
+                  <div className="text-left">
+                    <p className="text-sm font-medium">Friendly Match</p>
+                    <p className="text-xs text-neutral">Ratings won&apos;t be affected</p>
+                  </div>
+                  <div className={`w-11 h-6 rounded-full transition-all relative ${
+                    isFriendly ? "bg-primary" : "bg-border"
+                  }`}>
+                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
+                      isFriendly ? "left-[22px]" : "left-0.5"
+                    }`} />
+                  </div>
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -275,6 +322,12 @@ export default function NewMatchPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-neutral">Points/Set</span>
                 <span className="font-medium">{pointsPerSet}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-neutral">Match Type</span>
+                <span className={`font-medium ${isFriendly ? "text-primary" : ""}`}>
+                  {isFriendly ? "Friendly" : "Ranked"}
+                </span>
               </div>
               <hr className="border-border" />
               <div>
@@ -320,6 +373,114 @@ export default function NewMatchPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PlayerSearchInput({
+  label,
+  players,
+  excludeIds,
+  selectedId,
+  onSelect,
+  onClear,
+}: {
+  label: string;
+  players: PlayerOption[];
+  excludeIds: string[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onClear: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = selectedId ? players.find((p) => p.id === selectedId) : null;
+
+  const filtered = players.filter((p) => {
+    if (p.id === selectedId) return false;
+    if (excludeIds.includes(p.id)) return false;
+    if (!query) return true;
+    return p.user.name?.toLowerCase().includes(query.toLowerCase());
+  });
+
+  if (selected) {
+    return (
+      <div className="flex items-center justify-between p-3 rounded-xl border-2 border-primary bg-blue-50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
+            {selected.user.name?.[0]?.toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium">{selected.user.name}</p>
+            <p className="text-xs text-neutral">Rating: {selected.rating}</p>
+          </div>
+        </div>
+        <button
+          onClick={onClear}
+          className="p-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+        >
+          <X size={16} className="text-neutral" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="block text-xs text-neutral mb-1.5">{label}</label>
+      <div className="relative">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral" />
+        <input
+          type="text"
+          placeholder="Search by name..."
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          className="w-full pl-9 pr-3 h-11 rounded-xl border-2 border-border bg-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        />
+      </div>
+      {open && (
+        <div className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-xs text-neutral text-center py-4">No players found</p>
+          ) : (
+            filtered.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  onSelect(p.id);
+                  setQuery("");
+                  setOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-background transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-background text-neutral flex items-center justify-center text-xs font-bold">
+                    {p.user.name?.[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium">{p.user.name}</span>
+                </div>
+                <span className="text-xs text-neutral">Rating: {p.rating}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
