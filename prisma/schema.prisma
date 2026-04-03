@@ -107,7 +107,7 @@ model Match {
   participants    MatchParticipant[]
   sets            Set[]
   eventLogs       EventLog[]
-  tournamentMatch TournamentMatch?
+  tournamentLinks TournamentMatch[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
@@ -202,7 +202,7 @@ model TournamentMatch {
   teamAId      String?               @db.ObjectId
   teamBId      String?               @db.ObjectId
   winnerId     String?               @db.ObjectId
-  matchId      String?               @unique @db.ObjectId
+  matchId      String?               @db.ObjectId
   status       TournamentMatchStatus @default(LOCKED)
   tournament   Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   teamA        Team?                 @relation("TournamentMatchTeamA", fields: [teamAId], references: [id])

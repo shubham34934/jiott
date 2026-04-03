@@ -32,6 +32,7 @@ interface TournamentMatchData {
 interface TournamentData {
   id: string;
   name: string;
+  type: string;
   matchType: string;
   status: string;
   teams: TeamData[];
@@ -43,6 +44,11 @@ function getTeamName(team: TeamData | null): string {
   const p1 = team.player1?.user?.name || "?";
   const p2 = team.player2?.user?.name;
   return p2 ? `${p1} & ${p2}` : p1;
+}
+
+function matchDetailHref(matchId: string, tournamentId: string) {
+  const returnTo = encodeURIComponent(`/tournaments/${tournamentId}`);
+  return `/matches/${matchId}?returnTo=${returnTo}`;
 }
 
 export default function TournamentPage({
@@ -76,6 +82,9 @@ export default function TournamentPage({
   const totalRounds = roundNumbers.length;
 
   const getRoundLabel = (round: number) => {
+    if (tournament.type === "ROUND_ROBIN") {
+      return "Round robin";
+    }
     if (round === totalRounds) return "Final";
     if (round === totalRounds - 1) return "Semi Finals";
     if (round === totalRounds - 2) return "Quarter Finals";
@@ -92,14 +101,16 @@ export default function TournamentPage({
           <div>
             <h1 className="text-lg font-bold">{tournament.name}</h1>
             <p className="text-xs text-neutral">
-              {tournament.matchType} &middot; {tournament.teams.length} teams
+              {tournament.type === "ROUND_ROBIN" ? "Round robin" : "Knockout"}{" "}
+              &middot; {tournament.matchType} &middot; {tournament.teams.length}{" "}
+              teams
             </p>
           </div>
         </div>
         <StatusBadge status={tournament.status} />
       </div>
 
-      <div className="px-4 pt-4 overflow-x-auto">
+      <div className="px-4 pt-4 overflow-x-auto touch-pan-x">
         <div className="flex gap-4 min-w-max pb-4">
           {roundNumbers.map((round) => {
             const matches = rounds.get(round) || [];
@@ -110,7 +121,11 @@ export default function TournamentPage({
                 </h3>
                 <div className="flex flex-col justify-around flex-1 gap-3">
                   {matches.map((m) => (
-                    <BracketMatchCard key={m.id} match={m} />
+                    <BracketMatchCard
+                      key={m.id}
+                      match={m}
+                      tournamentId={id}
+                    />
                   ))}
                 </div>
               </div>
@@ -133,7 +148,7 @@ export default function TournamentPage({
             const cardClass = `bg-surface rounded-xl border p-4 ${
               m.status === "LOCKED"
                 ? "border-border opacity-50"
-                : m.status === "READY"
+                : m.status === "READY" || m.status === "ONGOING"
                   ? "border-primary"
                   : "border-border"
             }`;
@@ -175,13 +190,13 @@ export default function TournamentPage({
             );
 
             return m.match ? (
-              <Link
+              <a
                 key={m.id}
-                href={`/matches/${m.match.id}`}
-                className={`block w-full ${cardClass} active:scale-[0.99] transition-transform`}
+                href={matchDetailHref(m.match.id, id)}
+                className={`relative z-10 block w-full cursor-pointer touch-manipulation ${cardClass} active:scale-[0.99] transition-transform`}
               >
                 {inner}
-              </Link>
+              </a>
             ) : (
               <div key={m.id} className={cardClass}>
                 {inner}
@@ -194,22 +209,30 @@ export default function TournamentPage({
   );
 }
 
-function BracketMatchCard({ match }: { match: TournamentMatchData }) {
+function BracketMatchCard({
+  match,
+  tournamentId,
+}: {
+  match: TournamentMatchData;
+  tournamentId: string;
+}) {
   const isLocked = match.status === "LOCKED";
   const isCompleted = match.status === "COMPLETED";
+  const isPlayable =
+    match.status === "READY" || match.status === "ONGOING";
 
-  return (
-    <div
-      className={`rounded-xl border p-3 text-sm ${
-        isLocked
-          ? "bg-gray-50 border-border opacity-50"
-          : match.status === "READY"
-          ? "bg-surface border-primary shadow-sm"
-          : isCompleted
+  const className = `rounded-xl border p-3 text-sm ${
+    isLocked
+      ? "bg-gray-50 border-border opacity-50"
+      : isPlayable
+        ? "bg-surface border-primary shadow-sm"
+        : isCompleted
           ? "bg-surface border-success"
           : "bg-surface border-border"
-      }`}
-    >
+  }`;
+
+  const inner = (
+    <>
       <div
         className={`flex items-center justify-between py-1 ${
           match.winnerId === match.teamAId
@@ -217,9 +240,7 @@ function BracketMatchCard({ match }: { match: TournamentMatchData }) {
             : "text-text-primary"
         }`}
       >
-        <span className="truncate">
-          {getTeamName(match.teamA)}
-        </span>
+        <span className="truncate">{getTeamName(match.teamA)}</span>
       </div>
       <div className="border-t border-border my-1" />
       <div
@@ -229,10 +250,21 @@ function BracketMatchCard({ match }: { match: TournamentMatchData }) {
             : "text-text-primary"
         }`}
       >
-        <span className="truncate">
-          {getTeamName(match.teamB)}
-        </span>
+        <span className="truncate">{getTeamName(match.teamB)}</span>
       </div>
-    </div>
+    </>
   );
+
+  if (match.match) {
+    return (
+      <a
+        href={matchDetailHref(match.match.id, tournamentId)}
+        className={`relative z-10 block cursor-pointer touch-manipulation active:scale-[0.99] transition-transform ${className}`}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return <div className={className}>{inner}</div>;
 }

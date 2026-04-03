@@ -1,9 +1,10 @@
 "use client";
 
-import { use } from "react";
+import { Suspense, use } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SetScoreRow } from "@/components/SetScoreRow";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
@@ -44,6 +45,31 @@ interface MatchData {
   sets: SetData[];
   eventLogs: EventLogEntry[];
   createdAt: string;
+}
+
+/** Only same-app relative paths; blocks open redirects. */
+function safeReturnPath(raw: string | null): string | null {
+  if (!raw) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  if (!decoded.startsWith("/") || decoded.startsWith("//")) return null;
+  if (decoded.includes("://")) return null;
+  return decoded;
+}
+
+function MatchBackLink({ fallbackHref }: { fallbackHref: string }) {
+  const searchParams = useSearchParams();
+  const returnTo = safeReturnPath(searchParams.get("returnTo"));
+  const href = returnTo ?? fallbackHref;
+  return (
+    <Link href={href} className="p-1" aria-label="Back">
+      <ArrowLeft size={22} className="text-text-primary" />
+    </Link>
+  );
 }
 
 function isValidSetScore(a: number, b: number, target: number): boolean {
@@ -155,9 +181,15 @@ export default function MatchDetailPage({
     <div>
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <div className="flex items-center gap-3">
-          <Link href="/matches" className="p-1">
-            <ArrowLeft size={22} className="text-text-primary" />
-          </Link>
+          <Suspense
+            fallback={
+              <Link href="/matches" className="p-1" aria-label="Back">
+                <ArrowLeft size={22} className="text-text-primary" />
+              </Link>
+            }
+          >
+            <MatchBackLink fallbackHref="/matches" />
+          </Suspense>
           <div>
             <h1 className="text-lg font-bold">Match Details</h1>
             <p className="text-xs text-neutral">{date}</p>

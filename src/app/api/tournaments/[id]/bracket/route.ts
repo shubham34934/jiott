@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { generateBracket, getDependencies } from "@/lib/bracket";
+import {
+  generateBracket,
+  generateRoundRobin,
+  getDependencies,
+} from "@/lib/bracket";
+import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
 export async function POST(
   _req: Request,
@@ -34,8 +39,22 @@ export async function POST(
     );
   }
 
+  const existing = await prisma.tournamentMatch.count({
+    where: { tournamentId: id },
+  });
+  if (existing > 0) {
+    return NextResponse.json(
+      { error: "Bracket already generated for this tournament" },
+      { status: 400 }
+    );
+  }
+
   const teamIds = tournament.teams.map((t) => t.id);
-  const bracketMatches = generateBracket(teamIds);
+  const isRoundRobin = tournament.type === "ROUND_ROBIN";
+
+  const bracketMatches = isRoundRobin
+    ? generateRoundRobin(teamIds)
+    : generateBracket(teamIds);
 
   const createdMatches: Record<string, string> = {};
 
@@ -43,13 +62,16 @@ export async function POST(
     const isBye = bm.isBye;
     let status: "LOCKED" | "READY" | "COMPLETED" = "LOCKED";
 
-    if (bm.round === 1 && bm.teamAId && bm.teamBId) {
+    if (isRoundRobin) {
+      status = "READY";
+    } else if (bm.round === 1 && bm.teamAId && bm.teamBId) {
       status = isBye ? "COMPLETED" : "READY";
     } else if (bm.round === 1 && (bm.teamAId || bm.teamBId)) {
       status = "COMPLETED";
     }
 
-    const winnerId = isBye ? (bm.teamAId || bm.teamBId) : null;
+    const winnerId =
+      !isRoundRobin && isBye ? (bm.teamAId || bm.teamBId) : null;
 
     const tm = await prisma.tournamentMatch.create({
       data: {
@@ -66,60 +88,76 @@ export async function POST(
     createdMatches[`${bm.round}-${bm.position}`] = tm.id;
   }
 
-  for (const bm of bracketMatches) {
-    if (bm.round <= 1) continue;
+  if (!isRoundRobin) {
+    for (const bm of bracketMatches) {
+      if (bm.round <= 1) continue;
 
-    const deps = getDependencies(bm.round, bm.position);
-    const matchId = createdMatches[`${bm.round}-${bm.position}`];
+      const deps = getDependencies(bm.round, bm.position);
+      const matchId = createdMatches[`${bm.round}-${bm.position}`];
 
-    for (const dep of deps) {
-      const depMatchId = createdMatches[`${dep.round}-${dep.position}`];
-      if (depMatchId) {
-        await prisma.matchDependency.create({
-          data: {
-            matchId,
-            dependsOnMatchId: depMatchId,
-            slot: dep.slot,
-          },
-        });
+      for (const dep of deps) {
+        const depMatchId = createdMatches[`${dep.round}-${dep.position}`];
+        if (depMatchId) {
+          await prisma.matchDependency.create({
+            data: {
+              matchId,
+              dependsOnMatchId: depMatchId,
+              slot: dep.slot,
+            },
+          });
+        }
       }
     }
-  }
 
-  for (const bm of bracketMatches) {
-    if (bm.round === 1 && (bm.isBye || !bm.teamAId || !bm.teamBId)) {
-      const tmId = createdMatches[`${bm.round}-${bm.position}`];
-      const winnerId = bm.teamAId || bm.teamBId;
+    for (const bm of bracketMatches) {
+      if (bm.round === 1 && (bm.isBye || !bm.teamAId || !bm.teamBId)) {
+        const tmId = createdMatches[`${bm.round}-${bm.position}`];
+        const winnerId = bm.teamAId || bm.teamBId;
 
-      if (winnerId) {
-        const nextDeps = await prisma.matchDependency.findMany({
-          where: { dependsOnMatchId: tmId },
-        });
-
-        for (const dep of nextDeps) {
-          const updateData =
-            dep.slot === "A"
-              ? { teamAId: winnerId }
-              : { teamBId: winnerId };
-
-          await prisma.tournamentMatch.update({
-            where: { id: dep.matchId },
-            data: updateData,
+        if (winnerId) {
+          const nextDeps = await prisma.matchDependency.findMany({
+            where: { dependsOnMatchId: tmId },
           });
 
-          const refreshed = await prisma.tournamentMatch.findUnique({
-            where: { id: dep.matchId },
-          });
+          for (const dep of nextDeps) {
+            const updateData =
+              dep.slot === "A"
+                ? { teamAId: winnerId }
+                : { teamBId: winnerId };
 
-          if (refreshed?.teamAId && refreshed?.teamBId) {
             await prisma.tournamentMatch.update({
-              where: { id: refreshed.id },
-              data: { status: "READY" },
+              where: { id: dep.matchId },
+              data: updateData,
             });
+
+            const refreshed = await prisma.tournamentMatch.findUnique({
+              where: { id: dep.matchId },
+            });
+
+            if (refreshed?.teamAId && refreshed?.teamBId) {
+              await prisma.tournamentMatch.update({
+                where: { id: refreshed.id },
+                data: { status: "READY" },
+              });
+            }
           }
         }
       }
     }
+  }
+
+  const playableWithoutMatch = await prisma.tournamentMatch.findMany({
+    where: {
+      tournamentId: id,
+      matchId: null,
+      teamAId: { not: null },
+      teamBId: { not: null },
+      status: "READY",
+    },
+  });
+
+  for (const tm of playableWithoutMatch) {
+    await ensureTournamentPlayableMatch(tm.id, session.user.id);
   }
 
   await prisma.tournament.update({

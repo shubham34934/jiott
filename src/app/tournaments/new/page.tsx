@@ -26,6 +26,9 @@ export default function NewTournamentPage() {
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
   const [matchType, setMatchType] = useState<"SINGLES" | "DOUBLES">("SINGLES");
+  const [tournamentType, setTournamentType] = useState<
+    "SINGLE_ELIMINATION" | "ROUND_ROBIN"
+  >("SINGLE_ELIMINATION");
   const [teams, setTeams] = useState<TeamEntry[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
@@ -39,8 +42,12 @@ export default function NewTournamentPage() {
       const res = await fetch("/api/tournaments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, matchType }),
+        body: JSON.stringify({ name, matchType, type: tournamentType }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create tournament");
+      }
       const tournament = await res.json();
 
       for (const team of teams) {
@@ -56,9 +63,14 @@ export default function NewTournamentPage() {
         });
       }
 
-      await fetch(`/api/tournaments/${tournament.id}/bracket`, {
-        method: "POST",
-      });
+      const bracketRes = await fetch(
+        `/api/tournaments/${tournament.id}/bracket`,
+        { method: "POST" }
+      );
+      if (!bracketRes.ok) {
+        const err = await bracketRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate bracket");
+      }
 
       return tournament;
     },
@@ -195,6 +207,37 @@ export default function NewTournamentPage() {
                 <span className="font-semibold text-sm">Doubles</span>
               </button>
             </div>
+            <p className="text-sm text-neutral mb-3">Bracket format</p>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                type="button"
+                onClick={() => setTournamentType("SINGLE_ELIMINATION")}
+                className={`flex flex-col items-start gap-1 p-4 rounded-xl border-2 transition-all text-left ${
+                  tournamentType === "SINGLE_ELIMINATION"
+                    ? "border-primary bg-blue-50"
+                    : "border-border bg-surface"
+                }`}
+              >
+                <span className="font-semibold text-sm">Knockout</span>
+                <span className="text-xs text-neutral leading-snug">
+                  Single elimination until one winner
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTournamentType("ROUND_ROBIN")}
+                className={`flex flex-col items-start gap-1 p-4 rounded-xl border-2 transition-all text-left ${
+                  tournamentType === "ROUND_ROBIN"
+                    ? "border-primary bg-blue-50"
+                    : "border-border bg-surface"
+                }`}
+              >
+                <span className="font-semibold text-sm">Round robin</span>
+                <span className="text-xs text-neutral leading-snug">
+                  Everyone plays everyone once
+                </span>
+              </button>
+            </div>
             <div className="flex gap-3">
               <Button variant="secondary" onClick={() => setStep(1)}>
                 Back
@@ -292,14 +335,26 @@ export default function NewTournamentPage() {
             <h2 className="text-xl font-bold mb-2">Confirm tournament</h2>
             <p className="text-sm text-neutral mb-6">Review and generate bracket</p>
 
+            {createTournament.isError && (
+              <p className="text-sm text-red-600 mb-4">
+                {createTournament.error instanceof Error
+                  ? createTournament.error.message
+                  : "Something went wrong"}
+              </p>
+            )}
+
             <div className="bg-surface rounded-xl border border-border p-4 mb-6 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-neutral">Name</span>
                 <span className="font-medium">{name}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-neutral">Type</span>
-                <span className="font-medium">Single Elimination</span>
+                <span className="text-neutral">Format</span>
+                <span className="font-medium">
+                  {tournamentType === "ROUND_ROBIN"
+                    ? "Round robin"
+                    : "Knockout"}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-neutral">Match Type</span>

@@ -2,6 +2,54 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
+
+const tournamentInclude = {
+  teams: {
+    include: {
+      player1: {
+        include: { user: { select: { name: true, image: true } } },
+      },
+      player2: {
+        include: { user: { select: { name: true, image: true } } },
+      },
+    },
+  },
+  matches: {
+    include: {
+      teamA: {
+        include: {
+          player1: {
+            include: { user: { select: { name: true } } },
+          },
+          player2: {
+            include: { user: { select: { name: true } } },
+          },
+        },
+      },
+      teamB: {
+        include: {
+          player1: {
+            include: { user: { select: { name: true } } },
+          },
+          player2: {
+            include: { user: { select: { name: true } } },
+          },
+        },
+      },
+      winner: true,
+      match: {
+        include: {
+          sets: { orderBy: { setNumber: "asc" as const } },
+        },
+      },
+    },
+    orderBy: [
+      { round: "asc" as const },
+      { position: "asc" as const },
+    ],
+  },
+};
 
 export async function GET(
   _req: Request,
@@ -9,51 +57,9 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const tournament = await prisma.tournament.findUnique({
+  let tournament = await prisma.tournament.findUnique({
     where: { id },
-    include: {
-      teams: {
-        include: {
-          player1: {
-            include: { user: { select: { name: true, image: true } } },
-          },
-          player2: {
-            include: { user: { select: { name: true, image: true } } },
-          },
-        },
-      },
-      matches: {
-        include: {
-          teamA: {
-            include: {
-              player1: {
-                include: { user: { select: { name: true } } },
-              },
-              player2: {
-                include: { user: { select: { name: true } } },
-              },
-            },
-          },
-          teamB: {
-            include: {
-              player1: {
-                include: { user: { select: { name: true } } },
-              },
-              player2: {
-                include: { user: { select: { name: true } } },
-              },
-            },
-          },
-          winner: true,
-          match: {
-            include: {
-              sets: { orderBy: { setNumber: "asc" } },
-            },
-          },
-        },
-        orderBy: [{ round: "asc" }, { position: "asc" }],
-      },
-    },
+    include: tournamentInclude,
   });
 
   if (!tournament) {
@@ -61,6 +67,32 @@ export async function GET(
       { error: "Tournament not found" },
       { status: 404 }
     );
+  }
+
+  const orphanSlots = tournament.matches.filter(
+    (m) =>
+      !m.matchId &&
+      m.teamAId &&
+      m.teamBId &&
+      (m.status === "READY" || m.status === "ONGOING")
+  );
+
+  for (const tm of orphanSlots) {
+    try {
+      await ensureTournamentPlayableMatch(tm.id, tournament.createdBy);
+    } catch {
+      /* one bad slot should not break the whole page */
+    }
+  }
+
+  if (orphanSlots.length > 0) {
+    const refreshed = await prisma.tournament.findUnique({
+      where: { id },
+      include: tournamentInclude,
+    });
+    if (refreshed) {
+      tournament = refreshed;
+    }
   }
 
   return NextResponse.json(tournament);

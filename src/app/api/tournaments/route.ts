@@ -37,12 +37,16 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { name, matchType } = body;
+  const { name, matchType, type: tournamentType } = body;
+
+  const type =
+    tournamentType === "ROUND_ROBIN" ? "ROUND_ROBIN" : "SINGLE_ELIMINATION";
 
   const tournament = await prisma.tournament.create({
     data: {
       name,
       matchType,
+      type,
       createdBy: session.user.id,
     },
   });

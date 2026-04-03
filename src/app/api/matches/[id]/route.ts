@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
+import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
 export async function GET(
   _req: Request,
@@ -180,7 +181,7 @@ async function completeMatch(matchId: string, userId: string) {
     },
   });
 
-  const tournamentMatch = await prisma.tournamentMatch.findUnique({
+  const tournamentMatch = await prisma.tournamentMatch.findFirst({
     where: { matchId },
   });
 
@@ -216,10 +217,7 @@ async function completeMatch(matchId: string, userId: string) {
       });
 
       if (refreshed?.teamAId && refreshed?.teamBId) {
-        await prisma.tournamentMatch.update({
-          where: { id: refreshed.id },
-          data: { status: "READY" },
-        });
+        await ensureTournamentPlayableMatch(refreshed.id, userId);
       }
     }
   }
