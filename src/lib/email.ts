@@ -1,10 +1,14 @@
 import nodemailer from "nodemailer";
 
 function createTransporter() {
+  const port = parseInt(process.env.SMTP_PORT || "465");
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
+    port,
+    secure: port === 465,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -76,11 +80,14 @@ export async function sendOtpEmail(
   name: string,
   otp: string,
   type: "verify" | "reset"
-) {
-  const isDev =
-    !process.env.SMTP_USER || process.env.SMTP_USER === "your-email@gmail.com";
+): Promise<{ success: boolean; error?: string }> {
+  const isProduction = process.env.NODE_ENV === "production";
 
-  if (isDev) {
+  if (!process.env.SMTP_USER || process.env.SMTP_USER === "your-email@gmail.com") {
+    if (isProduction) {
+      console.error("[EMAIL] SMTP_USER not configured in production!");
+      return { success: false, error: "Email service not configured." };
+    }
     console.log(`\n📧 [EMAIL OTP - DEV MODE]`);
     console.log(`   To: ${email}`);
     console.log(`   OTP: ${otp}`);
@@ -88,18 +95,34 @@ export async function sendOtpEmail(
     return { success: true };
   }
 
-  const transporter = createTransporter();
-  const subject =
-    type === "verify"
-      ? "JioTT - Verify your email address"
-      : "JioTT - Reset your password";
+  try {
+    const transporter = createTransporter();
+    const subject =
+      type === "verify"
+        ? "JioTT - Verify your email address"
+        : "JioTT - Reset your password";
 
-  await transporter.sendMail({
-    from: `"JioTT" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject,
-    html: otpEmailHtml(name, otp, type),
-  });
+    const info = await transporter.sendMail({
+      from: `"JioTT" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject,
+      html: otpEmailHtml(name, otp, type),
+    });
 
-  return { success: true };
+    console.log(`[EMAIL] Sent ${type} OTP to ${email} (messageId: ${info.messageId})`);
+    return { success: true };
+  } catch (err) {
+    const errMsg = (err as Error).message;
+    console.error(`[EMAIL] SMTP failed: ${errMsg}`);
+
+    if (!isProduction) {
+      console.log(`\n📧 [EMAIL OTP - DEV FALLBACK]`);
+      console.log(`   To: ${email}`);
+      console.log(`   OTP: ${otp}`);
+      console.log(`   Type: ${type}\n`);
+      return { success: true };
+    }
+
+    return { success: false, error: "Failed to send email. Please try again." };
+  }
 }

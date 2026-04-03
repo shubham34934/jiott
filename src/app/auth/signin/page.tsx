@@ -23,26 +23,48 @@ function SignInForm() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email: email.trim().toLowerCase(),
-      password,
-      redirect: false,
-    });
+    const normalizedEmail = email.trim().toLowerCase();
 
-    setLoading(false);
+    try {
+      const checkRes = await fetch("/api/auth/check-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail, password }),
+      });
 
-    if (result?.error) {
-      if (result.error.startsWith("EMAIL_NOT_VERIFIED:")) {
-        const unverifiedEmail = result.error.split(":")[1];
-        router.push(`/auth/verify?email=${encodeURIComponent(unverifiedEmail)}`);
+      const checkData = await checkRes.json();
+
+      if (checkRes.status === 403 && checkData.status === "not_verified") {
+        setLoading(false);
+        router.push(`/auth/verify?email=${encodeURIComponent(checkData.email)}`);
         return;
       }
-      setError(result.error);
-      return;
-    }
 
-    router.push(callbackUrl);
-    router.refresh();
+      if (!checkRes.ok) {
+        setLoading(false);
+        setError(checkData.error);
+        return;
+      }
+
+      const result = await signIn("credentials", {
+        email: normalizedEmail,
+        password,
+        redirect: false,
+      });
+
+      setLoading(false);
+
+      if (result?.error) {
+        setError("Sign in failed. Please try again.");
+        return;
+      }
+
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Please try again.");
+    }
   };
 
   return (

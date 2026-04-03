@@ -18,13 +18,17 @@ function ResetForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [countdown, setCountdown] = useState(60);
   const [success, setSuccess] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
+    if (!email) {
+      router.replace("/auth/forgot-password");
+      return;
+    }
     inputRefs.current[0]?.focus();
-  }, []);
+  }, [email, router]);
 
   useEffect(() => {
     if (countdown > 0) {

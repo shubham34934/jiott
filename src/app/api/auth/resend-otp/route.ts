@@ -47,12 +47,19 @@ export async function POST(req: Request) {
     }
 
     const code = await createOtp(normalizedEmail, otpType);
-    await sendOtpEmail(
+    const emailResult = await sendOtpEmail(
       normalizedEmail,
       user.name || "User",
       code,
       otpType === "VERIFY_EMAIL" ? "verify" : "reset"
     );
+
+    if (!emailResult.success) {
+      return NextResponse.json(
+        { error: emailResult.error },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ message: "New code sent to your email." });
   } catch {

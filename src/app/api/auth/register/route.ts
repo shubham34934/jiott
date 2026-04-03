@@ -34,9 +34,38 @@ export async function POST(req: Request) {
           { status: 409 }
         );
       }
-      // Account exists but not verified — resend OTP
+
+      // Rate-limit: don't resend if an OTP was created in the last 60 seconds
+      const recentOtp = await prisma.otpCode.findFirst({
+        where: {
+          email: normalizedEmail,
+          type: "VERIFY_EMAIL",
+          used: false,
+          createdAt: { gte: new Date(Date.now() - 60 * 1000) },
+        },
+      });
+
+      if (recentOtp) {
+        return NextResponse.json({
+          message: "OTP already sent. Please check your email.",
+        });
+      }
+
+      // Update password in case user changed it during re-registration
+      const hashedPassword = await bcrypt.hash(password, 12);
+      await prisma.user.update({
+        where: { email: normalizedEmail },
+        data: { name: name.trim(), password: hashedPassword },
+      });
+
       const code = await createOtp(normalizedEmail, "VERIFY_EMAIL");
-      await sendOtpEmail(normalizedEmail, existing.name || name, code, "verify");
+      const emailResult = await sendOtpEmail(normalizedEmail, existing.name || name, code, "verify");
+      if (!emailResult.success) {
+        return NextResponse.json(
+          { error: emailResult.error },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({ message: "OTP resent. Please verify your email." });
     }
 
@@ -51,7 +80,13 @@ export async function POST(req: Request) {
     });
 
     const code = await createOtp(normalizedEmail, "VERIFY_EMAIL");
-    await sendOtpEmail(normalizedEmail, name.trim(), code, "verify");
+    const emailResult = await sendOtpEmail(normalizedEmail, name.trim(), code, "verify");
+    if (!emailResult.success) {
+      return NextResponse.json(
+        { error: emailResult.error },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { message: "Account created. Please verify your email." },

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/Button";
 import { CheckCircle2 } from "lucide-react";
 
@@ -16,12 +15,17 @@ function VerifyForm() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendMsg, setResendMsg] = useState("");
-  const [countdown, setCountdown] = useState(0);
+  const [countdown, setCountdown] = useState(60);
+  const [verified, setVerified] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
+    if (!email) {
+      router.replace("/auth/register");
+      return;
+    }
     inputRefs.current[0]?.focus();
-  }, []);
+  }, [email, router]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -89,8 +93,8 @@ function VerifyForm() {
       return;
     }
 
-    // Auto sign-in after verification — redirect to password entry
-    router.push(`/auth/signin?callbackUrl=/`);
+    setVerified(true);
+    setTimeout(() => router.push("/auth/signin?callbackUrl=/"), 2000);
   };
 
   const handleResend = async () => {
@@ -117,6 +121,16 @@ function VerifyForm() {
     setCode(["", "", "", "", "", ""]);
     inputRefs.current[0]?.focus();
   };
+
+  if (verified) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 px-5 py-10 text-center">
+        <CheckCircle2 size={56} className="text-success mb-4" />
+        <h2 className="text-xl font-bold text-text-primary">Email verified!</h2>
+        <p className="text-sm text-neutral mt-2">Redirecting you to sign in...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-5 py-10">

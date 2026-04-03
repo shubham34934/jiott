@@ -41,7 +41,13 @@ export async function POST(req: Request) {
     }
 
     const code = await createOtp(normalizedEmail, "RESET_PASSWORD");
-    await sendOtpEmail(normalizedEmail, user.name || "User", code, "reset");
+    const emailResult = await sendOtpEmail(normalizedEmail, user.name || "User", code, "reset");
+    if (!emailResult.success) {
+      return NextResponse.json(
+        { error: emailResult.error },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       message: "If an account exists, a reset code has been sent.",
