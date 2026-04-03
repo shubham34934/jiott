@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { ArrowLeft, User, Users, Search, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
+import { fetchPlayersForPicker } from "@/lib/fetchPlayersForPicker";
 
 type Step = 1 | 2 | 3 | 4;
 type MatchType = "SINGLES" | "DOUBLES";
@@ -26,8 +27,8 @@ export default function NewMatchPage() {
   const [isFriendly, setIsFriendly] = useState(false);
 
   const { data: players } = useQuery<PlayerOption[]>({
-    queryKey: ["players"],
-    queryFn: () => fetch("/api/players").then((r) => r.json()),
+    queryKey: ["players", "picker"],
+    queryFn: () => fetchPlayersForPicker() as Promise<PlayerOption[]>,
   });
 
   const createMatch = useMutation({

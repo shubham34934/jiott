@@ -3,7 +3,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Trophy, Target, TrendingUp } from "lucide-react";
+import { LogOut, Trophy, Target, TrendingUp } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/Button";
@@ -58,10 +58,12 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between px-4 pt-8 mb-4">
         <h1 className="text-2xl font-bold">Profile</h1>
         <button
+          type="button"
           onClick={() => signOut()}
           className="p-2 text-neutral hover:text-text-primary"
+          aria-label="Sign out"
         >
-          <Settings size={22} />
+          <LogOut size={22} />
         </button>
       </div>
 
@@ -72,8 +74,11 @@ export default function ProfilePage() {
             image={session.user.image}
             size="xl"
           />
-          <div>
-            <h2 className="text-xl font-bold">{session.user.name}</h2>
+          <div className="min-w-0">
+            <span className="inline-block mb-1.5 text-xs bg-white/20 rounded-full px-2.5 py-1 font-medium">
+              Rank #{player?._rank ?? "—"}
+            </span>
+            <h2 className="text-xl font-bold truncate">{session.user.name}</h2>
             <p className="text-sm text-white/80">Competitive Player</p>
           </div>
         </div>

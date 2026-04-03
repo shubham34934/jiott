@@ -110,11 +110,11 @@ export default function PlayerProfilePage({
             image={player.user.image}
             size="xl"
           />
-          <div>
-            <h2 className="text-xl font-bold">{player.user.name}</h2>
-            <span className="inline-block mt-1 text-xs bg-white/20 rounded-full px-2.5 py-1 font-medium">
-              Rank #{player._rank || "-"}
+          <div className="min-w-0">
+            <span className="inline-block mb-1.5 text-xs bg-white/20 rounded-full px-2.5 py-1 font-medium">
+              Rank #{player._rank ?? "—"}
             </span>
+            <h2 className="text-xl font-bold truncate">{player.user.name}</h2>
           </div>
         </div>
       </div>

@@ -3,12 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const friendly = searchParams.get("friendly");
   const tournament = searchParams.get("tournament");
-  const limit = parseInt(searchParams.get("limit") || "20");
+  const rawLimit = parseInt(searchParams.get("limit") || String(DEFAULT_LIMIT), 10);
+  const limit = Math.min(
+    MAX_LIMIT,
+    Math.max(1, Number.isNaN(rawLimit) ? DEFAULT_LIMIT : rawLimit)
+  );
+  const rawOffset = parseInt(searchParams.get("offset") || "0", 10);
+  const offset = Math.max(0, Number.isNaN(rawOffset) ? 0 : rawOffset);
 
   const linkedRows = await prisma.tournamentMatch.findMany({
     where: { matchId: { not: null } },
@@ -31,10 +40,17 @@ export async function GET(req: Request) {
     where.id = { notIn: linkedMatchIds };
   } else if (tournament === "only") {
     if (linkedMatchIds.length === 0) {
-      return NextResponse.json([]);
+      return NextResponse.json({
+        items: [],
+        hasMore: false,
+        nextOffset: 0,
+        total: 0,
+      });
     }
     where.id = { in: linkedMatchIds };
   }
+
+  const total = await prisma.match.count({ where });
 
   const matches = await prisma.match.findMany({
     where,
@@ -51,10 +67,14 @@ export async function GET(req: Request) {
       sets: { orderBy: { setNumber: "asc" } },
     },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    skip: offset,
+    take: limit + 1,
   });
 
-  const matchIds = matches.map((m) => m.id);
+  const hasMore = matches.length > limit;
+  const pageMatches = hasMore ? matches.slice(0, limit) : matches;
+
+  const matchIds = pageMatches.map((m) => m.id);
   const tournamentLinks =
     matchIds.length > 0
       ? await prisma.tournamentMatch.findMany({
@@ -73,13 +93,18 @@ export async function GET(req: Request) {
     }
   }
 
-  const payload = matches.map((m) => ({
+  const payload = pageMatches.map((m) => ({
     ...m,
     isTournamentMatch: linkedSet.has(m.id),
     tournamentName: tournamentNameByMatchId.get(m.id) ?? null,
   }));
 
-  return NextResponse.json(payload);
+  return NextResponse.json({
+    items: payload,
+    hasMore,
+    nextOffset: offset + payload.length,
+    total,
+  });
 }
 
 export async function POST(req: Request) {

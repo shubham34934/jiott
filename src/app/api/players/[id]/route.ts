@@ -38,6 +38,16 @@ export async function GET(
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
   }
 
+  const aheadCount = await prisma.player.count({
+    where: {
+      OR: [
+        { rating: { gt: player.rating } },
+        { AND: [{ rating: player.rating }, { id: { lt: player.id } }] },
+      ],
+    },
+  });
+  const _rank = aheadCount + 1;
+
   const participationMatchIds = player.matchParticipations.map(
     (mp) => mp.match.id
   );
@@ -107,6 +117,7 @@ export async function GET(
 
   return NextResponse.json({
     ...player,
+    _rank,
     matchParticipations,
     tournamentTeams,
   });

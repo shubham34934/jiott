@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowDownWideNarrow, Search } from "lucide-react";
+import { InfiniteScrollSentinel } from "@/components/InfiniteScrollSentinel";
 import { PlayerCard } from "@/components/PlayerCard";
 
 type PlayerSort = "rating" | "matchesPlayed" | "matchesWon";
@@ -13,24 +14,76 @@ const SORT_OPTIONS: { key: PlayerSort; label: string }[] = [
   { key: "matchesWon", label: "Wins" },
 ];
 
+const PLAYERS_PAGE_SIZE = 20;
+
+type PlayerRow = {
+  id: string;
+  rating: number;
+  matchesPlayed: number;
+  matchesWon: number;
+  user: { name: string | null };
+};
+
+type PlayersApiResponse = {
+  items: PlayerRow[];
+  hasMore: boolean;
+  nextOffset: number;
+  total: number;
+};
+
 export default function PlayersPage() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy] = useState<PlayerSort>("rating");
 
-  const { data: players, isLoading } = useQuery({
-    queryKey: ["players", sortBy],
-    queryFn: () =>
-      fetch(`/api/players?sortBy=${sortBy}`).then((r) => r.json()),
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["players", "infinite", sortBy, debouncedSearch],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<PlayersApiResponse> => {
+      const params = new URLSearchParams();
+      params.set("offset", String(pageParam));
+      params.set("limit", String(PLAYERS_PAGE_SIZE));
+      params.set("sortBy", sortBy);
+      if (debouncedSearch.length > 0) {
+        params.set("q", debouncedSearch);
+      }
+      const r = await fetch(`/api/players?${params}`);
+      return r.json();
+    },
+    getNextPageParam: (last) => (last.hasMore ? last.nextOffset : undefined),
   });
 
-  const filtered = players?.filter(
-    (p: { user: { name: string | null } }) =>
-      p.user.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const players = data?.pages.flatMap((p) => p.items) ?? [];
+  const totalCount = data?.pages[0]?.total;
+
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="px-4 pt-8">
-      <h1 className="text-2xl font-bold text-text-primary mb-4">Players</h1>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-text-primary">Players</h1>
+        {!isLoading && typeof totalCount === "number" && (
+          <p className="text-sm text-neutral mt-1">
+            {totalCount.toLocaleString()}{" "}
+            {totalCount === 1 ? "player" : "players"}
+          </p>
+        )}
+      </div>
 
       <div className="relative mb-6">
         <Search
@@ -88,28 +141,35 @@ export default function PlayersPage() {
             Loading players...
           </div>
         )}
-        {filtered?.length === 0 && !isLoading && (
+        {players.length === 0 && !isLoading && (
           <p className="text-sm text-neutral text-center py-12">
             No players found.
           </p>
         )}
-        {filtered?.map(
-          (player: {
-            id: string;
-            rating: number;
-            matchesPlayed: number;
-            matchesWon: number;
-            user: { name: string | null };
-          }) => (
-            <PlayerCard
-              key={player.id}
-              id={player.id}
-              name={player.user.name || "Unknown"}
-              rating={player.rating}
-              matchesPlayed={player.matchesPlayed}
-              matchesWon={player.matchesWon}
+        {players.map((player) => (
+          <PlayerCard
+            key={player.id}
+            id={player.id}
+            name={player.user.name || "Unknown"}
+            rating={player.rating}
+            matchesPlayed={player.matchesPlayed}
+            matchesWon={player.matchesWon}
+          />
+        ))}
+
+        {!isLoading && hasNextPage && (
+          <>
+            <InfiniteScrollSentinel
+              key={data?.pages.length ?? 0}
+              enabled={hasNextPage && !isFetchingNextPage}
+              onIntersect={loadMore}
             />
-          )
+            {isFetchingNextPage && (
+              <p className="text-center py-6 text-sm text-neutral">
+                Loading more…
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

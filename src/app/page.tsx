@@ -10,11 +10,19 @@ import { MatchCard } from "@/components/MatchCard";
 export default function HomePage() {
   const { data: session } = useSession();
 
-  const { data: matches, isLoading } = useQuery({
+  const { data: matchesData, isLoading } = useQuery({
     queryKey: ["matches", "recent", "exclude-tournament"],
     queryFn: () =>
-      fetch("/api/matches?limit=5&tournament=exclude").then((r) => r.json()),
+      fetch("/api/matches?limit=5&offset=0&tournament=exclude").then((r) =>
+        r.json()
+      ),
   });
+
+  const matches = Array.isArray(matchesData?.items)
+    ? matchesData.items
+    : Array.isArray(matchesData)
+      ? matchesData
+      : [];
 
   const firstName = session?.user?.name?.split(" ")[0];
 
@@ -73,7 +81,7 @@ export default function HomePage() {
               ))}
             </div>
           )}
-          {!isLoading && matches?.length === 0 && (
+          {!isLoading && matches.length === 0 && (
             <p className="text-sm text-neutral text-center py-8">
               No matches yet. Start your first match!
             </p>

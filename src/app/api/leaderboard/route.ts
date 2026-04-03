@@ -6,7 +6,7 @@ export async function GET() {
     include: {
       user: { select: { name: true, email: true, image: true } },
     },
-    orderBy: { rating: "desc" },
+    orderBy: [{ rating: "desc" }, { id: "asc" }],
   });
 
   return NextResponse.json(players);

@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { ArrowLeft, User, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
+import { fetchPlayersForPicker } from "@/lib/fetchPlayersForPicker";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -33,8 +34,8 @@ export default function NewTournamentPage() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
   const { data: players } = useQuery<PlayerOption[]>({
-    queryKey: ["players"],
-    queryFn: () => fetch("/api/players").then((r) => r.json()),
+    queryKey: ["players", "picker"],
+    queryFn: () => fetchPlayersForPicker() as Promise<PlayerOption[]>,
   });
 
   const createTournament = useMutation({
