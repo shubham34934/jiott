@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useState } from "react";
+import { Suspense, use, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Medal } from "lucide-react";
 import Link from "next/link";
@@ -9,6 +9,8 @@ import { SetScoreRow } from "@/components/SetScoreRow";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { formatDisplayDate } from "@/lib/formatDisplayDate";
+import { PlayerProfileLink } from "@/components/PlayerProfileLink";
 
 interface Participant {
   team: "A" | "B";
@@ -86,6 +88,29 @@ function MatchBackLink({ fallbackHref }: { fallbackHref: string }) {
   );
 }
 
+function participantNameRow(team: Participant[], won: boolean) {
+  const cls = won ? "font-semibold text-sm text-success" : "font-semibold text-sm";
+  return (
+    <p className={cls}>
+      {team.map((p, i) => (
+        <span key={p.player.id}>
+          {i > 0 ? " & " : null}
+          <PlayerProfileLink
+            playerId={p.player.id}
+            className={
+              won
+                ? "text-inherit underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                : "text-inherit underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+            }
+          >
+            {p.player.user.name || "Unknown"}
+          </PlayerProfileLink>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function isValidSetScore(a: number, b: number, target: number): boolean {
   if (a < 0 || b < 0) return false;
   const winner = Math.max(a, b);
@@ -112,7 +137,7 @@ export default function MatchDetailPage({
     queryFn: () => fetch(`/api/matches/${id}`).then((r) => r.json()),
   });
 
-  const savingSetRef = { current: -1 };
+  const savingSetRef = useRef(-1);
 
   const updateScore = useMutation({
     mutationFn: (data: {
@@ -143,6 +168,15 @@ export default function MatchDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["match", id] });
       queryClient.invalidateQueries({ queryKey: ["matches"] });
+      const m = queryClient.getQueryData<MatchData>(["match", id]);
+      if (m?.tournamentContext?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["tournament", m.tournamentContext.id],
+        });
+      }
+      for (const p of m?.participants ?? []) {
+        queryClient.invalidateQueries({ queryKey: ["player", p.player.id] });
+      }
     },
   });
 
@@ -203,7 +237,7 @@ export default function MatchDetailPage({
   const teamBWon =
     match.status === "COMPLETED" && teamBSetsWon > teamASetsWon;
 
-  const date = new Date(match.createdAt).toISOString().split("T")[0];
+  const date = formatDisplayDate(match.createdAt);
 
   const handleSaveScore = (
     setNumber: number,
@@ -290,13 +324,7 @@ export default function MatchDetailPage({
           >
             <div className="flex items-center justify-between">
               <div>
-                <p
-                  className={`font-semibold text-sm ${
-                    teamAWon ? "text-success" : ""
-                  }`}
-                >
-                  {teamANames}
-                </p>
+                {participantNameRow(teamA, teamAWon)}
                 <p className="text-xs text-neutral">
                   Rating:{" "}
                   {Math.round(
@@ -317,13 +345,7 @@ export default function MatchDetailPage({
           >
             <div className="flex items-center justify-between">
               <div>
-                <p
-                  className={`font-semibold text-sm ${
-                    teamBWon ? "text-success" : ""
-                  }`}
-                >
-                  {teamBNames}
-                </p>
+                {participantNameRow(teamB, teamBWon)}
                 <p className="text-xs text-neutral">
                   Rating:{" "}
                   {Math.round(
@@ -401,7 +423,7 @@ export default function MatchDetailPage({
         <h2 className="text-lg font-bold mb-3">Event History</h2>
         <div className="space-y-0 mb-8">
           {match.eventLogs.map((log) => {
-            const time = new Date(log.createdAt).toLocaleDateString();
+            const time = formatDisplayDate(log.createdAt);
             let description = log.action;
             const newVal = log.newValue as Record<string, unknown> | null;
 

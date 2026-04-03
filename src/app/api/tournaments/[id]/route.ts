@@ -5,6 +5,26 @@ import { authOptions } from "@/lib/auth";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
 const tournamentInclude = {
+  winnerTeam: {
+    include: {
+      player1: {
+        include: { user: { select: { name: true, image: true } } },
+      },
+      player2: {
+        include: { user: { select: { name: true, image: true } } },
+      },
+    },
+  },
+  runnerUpTeam: {
+    include: {
+      player1: {
+        include: { user: { select: { name: true, image: true } } },
+      },
+      player2: {
+        include: { user: { select: { name: true, image: true } } },
+      },
+    },
+  },
   teams: {
     include: {
       player1: {

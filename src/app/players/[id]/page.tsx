@@ -1,12 +1,19 @@
 "use client";
 
-import { use } from "react";
+import { use, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Trophy, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
-import { MatchCard } from "@/components/MatchCard";
+import { MatchFiltersBar } from "@/components/MatchFiltersBar";
+import { MatchListCards, type MatchListItem } from "@/components/MatchListCards";
+import { TournamentListCard } from "@/components/TournamentListCard";
 import { Button } from "@/components/Button";
+import {
+  matchPassesFilters,
+  type MatchFilterTab,
+  type MatchSourceTab,
+} from "@/lib/matchFilters";
 
 export default function PlayerProfilePage({
   params,
@@ -15,10 +22,55 @@ export default function PlayerProfilePage({
 }) {
   const { id } = use(params);
 
+  const [matchFilter, setMatchFilter] = useState<MatchFilterTab>("all");
+  const [matchSource, setMatchSource] = useState<MatchSourceTab>("all");
+  const [matchFiltersOpen, setMatchFiltersOpen] = useState(false);
+
   const { data: player, isLoading } = useQuery({
     queryKey: ["player", id],
     queryFn: () => fetch(`/api/players/${id}`).then((r) => r.json()),
   });
+
+  const tournamentRows =
+    (player?.tournamentTeams as Array<{
+      id: string;
+      tournament: {
+        id: string;
+        name: string;
+        type: string;
+        matchType: string;
+        status: string;
+        winnerTeamId: string | null;
+        runnerUpTeamId: string | null;
+      };
+    }>) ?? [];
+
+  function placementLabel(
+    teamId: string,
+    t: (typeof tournamentRows)[number]["tournament"]
+  ) {
+    if (t.status === "CREATED") return "Draft";
+    if (t.status === "IN_PROGRESS") return "In progress";
+    if (t.status === "COMPLETED") {
+      if (t.winnerTeamId === teamId) return "Champion";
+      if (t.runnerUpTeamId === teamId) return "Runner-up";
+      return "Participant";
+    }
+    return "";
+  }
+
+  const matchParticipationCount =
+    player?.matchParticipations?.length ?? 0;
+
+  const filteredMatches: MatchListItem[] = useMemo(() => {
+    const raw =
+      player?.matchParticipations?.map(
+        (mp: { match: MatchListItem }) => mp.match
+      ) ?? [];
+    return raw.filter((m: MatchListItem) =>
+      matchPassesFilters(m, matchFilter, matchSource)
+    );
+  }, [player, matchFilter, matchSource]);
 
   if (isLoading) {
     return (
@@ -114,43 +166,54 @@ export default function PlayerProfilePage({
         </Link>
       </div>
 
-      <div className="px-4 mt-6 mb-4">
-        <h3 className="font-bold text-base mb-3">Match History</h3>
-        <div className="space-y-3">
-          {player.matchParticipations?.length === 0 && (
+      <div className="px-4 mt-6">
+        <h3 className="font-bold text-base mb-3">Tournaments</h3>
+        <div className="flex flex-col gap-3 mb-2">
+          {tournamentRows.length === 0 && (
             <p className="text-sm text-neutral text-center py-4">
-              No matches yet
+              No tournament entries yet
             </p>
           )}
-          {player.matchParticipations?.map(
-            (mp: {
-              match: {
-                id: string;
-                status: "ONGOING" | "COMPLETED" | "DISPUTED";
-                isFriendly?: boolean;
-                participants: Array<{
-                  team: "A" | "B";
-                  player: {
-                    id: string;
-                    user: { name: string | null; image: string | null };
-                  };
-                }>;
-                sets: Array<{ teamAScore: number; teamBScore: number }>;
-                createdAt: string;
-              };
-            }) => (
-              <MatchCard
-                key={mp.match.id}
-                id={mp.match.id}
-                status={mp.match.status}
-                isFriendly={mp.match.isFriendly}
-                participants={mp.match.participants}
-                sets={mp.match.sets}
-                createdAt={mp.match.createdAt}
+          {tournamentRows.map((row) => {
+            const t = row.tournament;
+            const formatLabel =
+              t.type === "ROUND_ROBIN" ? "Round robin" : "Knockout";
+            const placement = placementLabel(row.id, t);
+            const meta = [formatLabel, t.matchType, placement || null]
+              .filter(Boolean)
+              .join(" · ");
+
+            return (
+              <TournamentListCard
+                key={row.id}
+                href={`/tournaments/${t.id}`}
+                title={t.name}
+                status={t.status}
+                meta={meta}
               />
-            )
-          )}
+            );
+          })}
         </div>
+      </div>
+
+      <div className="px-4 mt-6 mb-4">
+        <h3 className="font-bold text-base mb-3">Match History</h3>
+        <MatchFiltersBar
+          filter={matchFilter}
+          source={matchSource}
+          onFilterChange={setMatchFilter}
+          onSourceChange={setMatchSource}
+          expanded={matchFiltersOpen}
+          onExpandedChange={setMatchFiltersOpen}
+        />
+        <MatchListCards
+          matches={filteredMatches}
+          emptyMessage={
+            matchParticipationCount === 0
+              ? "No matches yet"
+              : "No matches match these filters."
+          }
+        />
       </div>
     </div>
   );

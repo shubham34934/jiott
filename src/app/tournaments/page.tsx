@@ -2,9 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { StatusBadge } from "@/components/StatusBadge";
+import { TournamentListCard } from "@/components/TournamentListCard";
 import { Button } from "@/components/Button";
 
 interface TeamLike {
@@ -82,36 +82,14 @@ export default function TournamentsListPage() {
               : null;
 
           return (
-            <Link
+            <TournamentListCard
               key={t.id}
               href={`/tournaments/${t.id}`}
-              className="block w-full"
-            >
-              <div className="bg-surface rounded-xl border border-border p-4 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <p className="font-semibold text-sm text-text-primary truncate">
-                      {t.name}
-                    </p>
-                    <StatusBadge status={t.status} />
-                  </div>
-                  <p className="text-xs text-neutral">
-                    {t.matchType} &middot; {t._count.teams} teams &middot;{" "}
-                    {t._count.matches} bracket matches
-                  </p>
-                  {champion && (
-                    <p className="text-xs font-medium text-success mt-2">
-                      Winner: {champion}
-                    </p>
-                  )}
-                </div>
-                <ChevronRight
-                  size={20}
-                  className="text-neutral shrink-0"
-                  aria-hidden
-                />
-              </div>
-            </Link>
+              title={t.name}
+              status={t.status}
+              meta={`${t.matchType} · ${t._count.teams} teams · ${t._count.matches} bracket matches`}
+              highlight={champion ? `Winner: ${champion}` : null}
+            />
           );
         })}
       </div>

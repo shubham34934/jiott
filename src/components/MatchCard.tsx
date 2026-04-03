@@ -1,7 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { Fragment } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, Trophy } from "lucide-react";
+import { PlayerProfileLink } from "@/components/PlayerProfileLink";
+import { formatDisplayDate } from "@/lib/formatDisplayDate";
 
 interface Player {
   id: string;
@@ -31,6 +34,35 @@ interface MatchCardProps {
   linkPrefix?: string;
 }
 
+function teamNameLinks(
+  team: Participant[],
+  winClass: boolean,
+  stopPropagation: boolean
+) {
+  const nameClass = `text-sm hover:underline ${
+    winClass ? "font-bold text-green-500" : "font-medium text-text-primary"
+  }`;
+  /* One wrapper so the parent row’s flex gap does not sit between players */
+  return (
+    <span className="inline-flex flex-wrap items-center min-w-0">
+      {team.map((p, i) => (
+        <Fragment key={p.player.id}>
+          {i > 0 ? (
+            <span className="text-sm text-neutral mx-1.5 shrink-0">&</span>
+          ) : null}
+          <PlayerProfileLink
+            playerId={p.player.id}
+            stopPropagation={stopPropagation}
+            className={nameClass}
+          >
+            {p.player.user.name || "Unknown"}
+          </PlayerProfileLink>
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
 export function MatchCard({
   id,
   status,
@@ -42,6 +74,9 @@ export function MatchCard({
   tournamentName = null,
   linkPrefix = "/matches",
 }: MatchCardProps) {
+  const router = useRouter();
+  const matchHref = `${linkPrefix}/${id}`;
+
   const teamA = participants.filter((p) => p.team === "A");
   const teamB = participants.filter((p) => p.team === "B");
 
@@ -55,89 +90,88 @@ export function MatchCard({
   const teamAWon = status === "COMPLETED" && teamASetsWon > teamBSetsWon;
   const teamBWon = status === "COMPLETED" && teamBSetsWon > teamASetsWon;
 
-  const teamANames = teamA
-    .map((p) => p.player.user.name || "Unknown")
-    .join(" & ");
-  const teamBNames = teamB
-    .map((p) => p.player.user.name || "Unknown")
-    .join(" & ");
+  const date = formatDisplayDate(createdAt);
 
-  const date = new Date(createdAt).toISOString().split("T")[0];
+  const goToMatch = () => {
+    router.push(matchHref);
+  };
 
   return (
-    <Link href={`${linkPrefix}/${id}`} className="block">
-      <div className="bg-surface rounded-xl border border-border p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {status === "COMPLETED" ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
-                <CheckCircle2 size={14} className="text-success" />
-                Completed
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
-                <Clock size={14} />
-                Ongoing
-              </span>
-            )}
-            {isFriendly && (
-              <span className="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-2.5 py-1">
-                Friendly
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-neutral">{date}</span>
+    <div
+      className="bg-surface rounded-xl border border-border p-4 cursor-pointer hover:border-primary/25 transition-colors"
+      onClick={goToMatch}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          goToMatch();
+        }
+      }}
+      tabIndex={0}
+      aria-label={`View match on ${date}`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {status === "COMPLETED" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
+              <CheckCircle2 size={14} className="text-success" />
+              Completed
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
+              <Clock size={14} />
+              Ongoing
+            </span>
+          )}
+          {isFriendly && (
+            <span className="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-2.5 py-1">
+              Friendly
+            </span>
+          )}
         </div>
+        <span className="text-xs text-neutral">{date}</span>
+      </div>
 
-        {isTournamentMatch && tournamentName && (
-          <div className="mb-3">
-            <span className="inline-flex max-w-full items-center text-xs font-medium text-amber-800 bg-amber-50 rounded-full px-2.5 py-1 truncate">
-              Tournament: <b className="font-bold">{tournamentName}</b>
-            </span>
-          </div>
-        )}
+      {isTournamentMatch && tournamentName && (
+        <div className="mb-3">
+          <span className="inline-flex max-w-full items-center text-xs font-medium text-amber-800 bg-amber-50 rounded-full px-2.5 py-1 truncate">
+            Tournament:{" "}
+            <b className="font-bold">{tournamentName}</b>
+          </span>
+        </div>
+      )}
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-sm flex items-center gap-1.5 ${
-                teamAWon
-                  ? "font-bold text-green-500"
-                  : "text-text-primary"
-              }`}
-            >
-              {teamANames}
-              {teamAWon && <Trophy size={14} className="text-black shrink-0" />}
-            </span>
-            <span
-              className={`text-lg font-bold tabular-nums ${
-                teamAWon ? "text-green-500" : "text-neutral"
-              }`}
-            >
-              {teamASetsWon}
-            </span>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+            {teamNameLinks(teamA, teamAWon, true)}
+            {teamAWon && (
+              <Trophy size={14} className="text-black shrink-0" />
+            )}
           </div>
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-sm flex items-center gap-1.5 ${
-                teamBWon
-                  ? "font-bold text-green-500"
-                  : "text-text-primary"
-              }`}
-            >
-              {teamBNames}
-              {teamBWon && <Trophy size={14} className="text-black shrink-0" />}
-            </span>
-            <span
-              className={`text-lg font-bold tabular-nums ${
-                teamBWon ? "text-green-500" : "text-neutral"
-              }`}
-            >
-              {teamBSetsWon}
-            </span>
+          <span
+            className={`text-lg font-bold tabular-nums shrink-0 ${
+              teamAWon ? "text-green-500" : "text-neutral"
+            }`}
+          >
+            {teamASetsWon}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+            {teamNameLinks(teamB, teamBWon, true)}
+            {teamBWon && (
+              <Trophy size={14} className="text-black shrink-0" />
+            )}
           </div>
+          <span
+            className={`text-lg font-bold tabular-nums shrink-0 ${
+              teamBWon ? "text-green-500" : "text-neutral"
+            }`}
+          >
+            {teamBSetsWon}
+          </span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -334,11 +334,16 @@ export default function NewMatchPage() {
                 <p className="text-xs text-neutral mb-2">Team A</p>
                 {selectedPlayers
                   .slice(0, matchType === "DOUBLES" ? 2 : 1)
-                  .map((id) => {
-                    const p = players?.find((pl) => pl.id === id);
+                  .map((pid) => {
+                    const p = players?.find((pl) => pl.id === pid);
                     return (
-                      <p key={id} className="text-sm font-medium">
-                        {p?.user.name}
+                      <p key={pid} className="text-sm font-medium">
+                        <Link
+                          href={`/players/${pid}`}
+                          className="text-inherit underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+                        >
+                          {p?.user.name}
+                        </Link>
                       </p>
                     );
                   })}
@@ -347,11 +352,16 @@ export default function NewMatchPage() {
                 <p className="text-xs text-neutral mb-2">Team B</p>
                 {selectedPlayers
                   .slice(matchType === "DOUBLES" ? 2 : 1)
-                  .map((id) => {
-                    const p = players?.find((pl) => pl.id === id);
+                  .map((pid) => {
+                    const p = players?.find((pl) => pl.id === pid);
                     return (
-                      <p key={id} className="text-sm font-medium">
-                        {p?.user.name}
+                      <p key={pid} className="text-sm font-medium">
+                        <Link
+                          href={`/players/${pid}`}
+                          className="text-inherit underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+                        >
+                          {p?.user.name}
+                        </Link>
                       </p>
                     );
                   })}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 interface SetScoreRowProps {
   setNumber: number;
@@ -158,11 +158,17 @@ export function SetScoreRow({
 
           {hasChanged && (
             <button
+              type="button"
               onClick={handleSave}
               disabled={isSaving || inputA === "" || inputB === ""}
+              aria-busy={isSaving}
               className="mt-3 w-full h-10 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Check size={16} />
+              {isSaving ? (
+                <Loader2 size={16} className="animate-spin" aria-hidden />
+              ) : (
+                <Check size={16} aria-hidden />
+              )}
               {isSaving ? "Saving..." : "Save Score"}
             </button>
           )}

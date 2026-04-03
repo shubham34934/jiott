@@ -38,5 +38,76 @@ export async function GET(
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
   }
 
-  return NextResponse.json(player);
+  const participationMatchIds = player.matchParticipations.map(
+    (mp) => mp.match.id
+  );
+  const linkedRows =
+    participationMatchIds.length > 0
+      ? await prisma.tournamentMatch.findMany({
+          where: { matchId: { in: participationMatchIds } },
+          select: {
+            matchId: true,
+            tournament: { select: { name: true } },
+          },
+        })
+      : [];
+  const linkedSet = new Set(
+    linkedRows
+      .map((r) => r.matchId)
+      .filter((mid): mid is string => mid != null)
+  );
+  const tournamentNameByMatchId = new Map<string, string>();
+  for (const row of linkedRows) {
+    if (row.matchId && !tournamentNameByMatchId.has(row.matchId)) {
+      tournamentNameByMatchId.set(row.matchId, row.tournament.name);
+    }
+  }
+
+  const matchParticipations = player.matchParticipations.map((mp) => ({
+    ...mp,
+    match: {
+      ...mp.match,
+      isTournamentMatch: linkedSet.has(mp.match.id),
+      tournamentName: tournamentNameByMatchId.get(mp.match.id) ?? null,
+    },
+  }));
+
+  const tournamentTeams = await prisma.team.findMany({
+    where: {
+      OR: [{ player1Id: id }, { player2Id: id }],
+    },
+    include: {
+      tournament: {
+        include: {
+          winnerTeam: {
+            include: {
+              player1: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+              player2: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+            },
+          },
+          runnerUpTeam: {
+            include: {
+              player1: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+              player2: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { tournament: { createdAt: "desc" } },
+  });
+
+  return NextResponse.json({
+    ...player,
+    matchParticipations,
+    tournamentTeams,
+  });
 }

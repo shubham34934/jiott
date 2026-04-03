@@ -2,17 +2,18 @@
 
 import { use, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Medal, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { TeamPlayersLinks } from "@/components/PlayerProfileLink";
 
 interface TeamData {
   id: string;
-  player1: { user: { name: string | null } };
-  player2: { user: { name: string | null } } | null;
+  player1: { id: string; user: { name: string | null } };
+  player2: { id: string; user: { name: string | null } } | null;
 }
 
 interface TournamentMatchData {
@@ -40,14 +41,9 @@ interface TournamentData {
   status: string;
   teams: TeamData[];
   matches: TournamentMatchData[];
+  winnerTeam: TeamData | null;
+  runnerUpTeam: TeamData | null;
   canDelete?: boolean;
-}
-
-function getTeamName(team: TeamData | null): string {
-  if (!team) return "TBD";
-  const p1 = team.player1?.user?.name || "?";
-  const p2 = team.player2?.user?.name;
-  return p2 ? `${p1} & ${p2}` : p1;
 }
 
 function matchDetailHref(matchId: string, tournamentId: string) {
@@ -137,6 +133,53 @@ export default function TournamentPage({
         <StatusBadge status={tournament.status} />
       </div>
 
+      {tournament.status === "COMPLETED" &&
+        (tournament.winnerTeam || tournament.runnerUpTeam) && (
+          <div className="mx-4 mt-4 rounded-xl border border-success/30 bg-success/5 p-4">
+            <h2 className="text-xs font-bold text-neutral uppercase tracking-wide mb-3">
+              Final results
+            </h2>
+            <div className="space-y-3">
+              {tournament.winnerTeam && (
+                <div>
+                  <p className="text-xs text-neutral mb-1">Champion</p>
+                  <p className="text-base font-bold text-text-primary flex items-center gap-2 flex-wrap">
+                    <Trophy
+                      size={20}
+                      className="text-amber-600 shrink-0"
+                      aria-hidden
+                    />
+                    <span className="font-bold">
+                      <TeamPlayersLinks
+                        team={tournament.winnerTeam}
+                        className="font-bold text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+                      />
+                    </span>
+                  </p>
+                </div>
+              )}
+              {tournament.runnerUpTeam && (
+                <div>
+                  <p className="text-xs text-neutral mb-1">Runner-up</p>
+                  <p className="text-sm font-semibold text-text-primary flex items-center gap-2 flex-wrap">
+                    <Medal
+                      size={18}
+                      className="text-neutral shrink-0"
+                      aria-hidden
+                    />
+                    <span className="font-semibold">
+                      <TeamPlayersLinks
+                        team={tournament.runnerUpTeam}
+                        className="font-semibold text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+                      />
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       <div className="px-4 pt-4 overflow-x-auto touch-pan-x">
         <div className="flex gap-4 min-w-max pb-4">
           {roundNumbers.map((round) => {
@@ -189,25 +232,29 @@ export default function TournamentPage({
                   <StatusBadge status={m.status} />
                 </div>
                 <div className="flex items-center justify-between mb-1">
-                  <span
-                    className={`text-sm ${
-                      m.winnerId === m.teamAId
-                        ? "font-bold text-success"
-                        : "text-text-primary"
-                    }`}
-                  >
-                    {getTeamName(m.teamA)}
+                  <span className="text-sm min-w-0 truncate">
+                    <TeamPlayersLinks
+                      team={m.teamA}
+                      stopPropagation={!!m.match}
+                      className={
+                        m.winnerId === m.teamAId
+                          ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                          : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+                      }
+                    />
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      m.winnerId === m.teamBId
-                        ? "font-bold text-success"
-                        : "text-text-primary"
-                    }`}
-                  >
-                    {getTeamName(m.teamB)}
+                  <span className="text-sm min-w-0 truncate">
+                    <TeamPlayersLinks
+                      team={m.teamB}
+                      stopPropagation={!!m.match}
+                      className={
+                        m.winnerId === m.teamBId
+                          ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                          : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+                      }
+                    />
                   </span>
                 </div>
                 {setsSummary && (
@@ -216,14 +263,26 @@ export default function TournamentPage({
               </>
             );
 
-            return m.match ? (
-              <a
+            const href = m.match
+              ? matchDetailHref(m.match.id, id)
+              : null;
+            return href ? (
+              <div
                 key={m.id}
-                href={matchDetailHref(m.match.id, id)}
+                role="button"
+                tabIndex={0}
+                aria-label="Open match"
+                onClick={() => router.push(href)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(href);
+                  }
+                }}
                 className={`relative z-10 block w-full cursor-pointer touch-manipulation ${cardClass} active:scale-[0.99] transition-transform`}
               >
                 {inner}
-              </a>
+              </div>
             ) : (
               <div key={m.id} className={cardClass}>
                 {inner}
@@ -270,6 +329,7 @@ function BracketMatchCard({
   match: TournamentMatchData;
   tournamentId: string;
 }) {
+  const router = useRouter();
   const isLocked = match.status === "LOCKED";
   const isCompleted = match.status === "COMPLETED";
   const isPlayable =
@@ -294,7 +354,17 @@ function BracketMatchCard({
             : "text-text-primary"
         }`}
       >
-        <span className="truncate">{getTeamName(match.teamA)}</span>
+        <span className="truncate min-w-0">
+          <TeamPlayersLinks
+            team={match.teamA}
+            stopPropagation={!!match.match}
+            className={
+              match.winnerId === match.teamAId
+                ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+            }
+          />
+        </span>
       </div>
       <div className="border-t border-border my-1" />
       <div
@@ -304,19 +374,39 @@ function BracketMatchCard({
             : "text-text-primary"
         }`}
       >
-        <span className="truncate">{getTeamName(match.teamB)}</span>
+        <span className="truncate min-w-0">
+          <TeamPlayersLinks
+            team={match.teamB}
+            stopPropagation={!!match.match}
+            className={
+              match.winnerId === match.teamBId
+                ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
+            }
+          />
+        </span>
       </div>
     </>
   );
 
   if (match.match) {
+    const href = matchDetailHref(match.match.id, tournamentId);
     return (
-      <a
-        href={matchDetailHref(match.match.id, tournamentId)}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Open match"
+        onClick={() => router.push(href)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            router.push(href);
+          }
+        }}
         className={`relative z-10 block cursor-pointer touch-manipulation active:scale-[0.99] transition-transform ${className}`}
       >
         {inner}
-      </a>
+      </div>
     );
   }
 

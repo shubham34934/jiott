@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
+import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
 
 export async function GET(
   _req: Request,
@@ -298,6 +299,8 @@ async function completeMatch(matchId: string, userId: string) {
         await ensureTournamentPlayableMatch(refreshed.id, userId);
       }
     }
+
+    await syncTournamentCompletionAfterMatch(tournamentMatch.id);
   }
 
   return NextResponse.json({ success: true });

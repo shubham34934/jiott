@@ -159,30 +159,36 @@ enum TournamentStatus {
 }
 
 model Tournament {
-  id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  type      String           @default("SINGLE_ELIMINATION")
-  matchType MatchType
-  status    TournamentStatus @default(CREATED)
-  teams     Team[]
-  matches   TournamentMatch[]
-  createdBy String
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  type           String           @default("SINGLE_ELIMINATION")
+  matchType      MatchType
+  status         TournamentStatus @default(CREATED)
+  winnerTeamId   String?          @db.ObjectId
+  runnerUpTeamId String?          @db.ObjectId
+  teams          Team[]
+  matches        TournamentMatch[]
+  winnerTeam     Team?            @relation("TournamentWinner", fields: [winnerTeamId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  runnerUpTeam   Team?            @relation("TournamentRunnerUp", fields: [runnerUpTeamId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy      String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 model Team {
-  id           String            @id @default(auto()) @map("_id") @db.ObjectId
-  tournamentId String            @db.ObjectId
-  name         String?
-  player1Id    String            @db.ObjectId
-  player2Id    String?           @db.ObjectId
-  tournament   Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  player1      Player            @relation("TeamPlayer1", fields: [player1Id], references: [id])
-  player2      Player?           @relation("TeamPlayer2", fields: [player2Id], references: [id])
-  matchesAsA   TournamentMatch[] @relation("TournamentMatchTeamA")
-  matchesAsB   TournamentMatch[] @relation("TournamentMatchTeamB")
-  matchesWon   TournamentMatch[] @relation("TournamentMatchWinner")
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  tournamentId       String            @db.ObjectId
+  name               String?
+  player1Id          String            @db.ObjectId
+  player2Id          String?           @db.ObjectId
+  tournament         Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1            Player            @relation("TeamPlayer1", fields: [player1Id], references: [id])
+  player2            Player?           @relation("TeamPlayer2", fields: [player2Id], references: [id])
+  matchesAsA         TournamentMatch[] @relation("TournamentMatchTeamA")
+  matchesAsB         TournamentMatch[] @relation("TournamentMatchTeamB")
+  matchesWon         TournamentMatch[] @relation("TournamentMatchWinner")
+  tournamentsWon     Tournament[]      @relation("TournamentWinner")
+  tournamentsRunnerUp Tournament[]     @relation("TournamentRunnerUp")
 
   @@unique([tournamentId, player1Id])
 }
