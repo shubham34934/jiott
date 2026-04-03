@@ -122,6 +122,13 @@ function isValidSetScore(a: number, b: number, target: number): boolean {
   return false;
 }
 
+/** First word only — used in set score cards to save space. */
+function displayFirstName(displayName: string): string {
+  const t = displayName.trim();
+  if (!t) return "Unknown";
+  return t.split(/\s+/)[0] ?? t;
+}
+
 export default function MatchDetailPage({
   params,
 }: {
@@ -217,10 +224,10 @@ export default function MatchDetailPage({
   const teamB = match.participants.filter((p) => p.team === "B");
 
   const teamANames = teamA
-    .map((p) => p.player.user.name || "Unknown")
+    .map((p) => displayFirstName(p.player.user.name || "Unknown"))
     .join(" & ");
   const teamBNames = teamB
-    .map((p) => p.player.user.name || "Unknown")
+    .map((p) => displayFirstName(p.player.user.name || "Unknown"))
     .join(" & ");
 
   let teamASetsWon = 0;
