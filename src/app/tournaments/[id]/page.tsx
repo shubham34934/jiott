@@ -24,6 +24,7 @@ interface TournamentMatchData {
   teamB: TeamData | null;
   winner: TeamData | null;
   match: {
+    id: string;
     sets: Array<{ teamAScore: number; teamBScore: number }>;
   } | null;
 }
@@ -85,7 +86,7 @@ export default function TournamentPage({
     <div>
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <div className="flex items-center gap-3">
-          <Link href="/" className="p-1">
+          <Link href="/tournaments" className="p-1" aria-label="Back to tournaments">
             <ArrowLeft size={22} className="text-text-primary" />
           </Link>
           <div>
@@ -120,48 +121,73 @@ export default function TournamentPage({
 
       <div className="px-4 pt-4 pb-8">
         <h3 className="font-bold text-base mb-3">All Matches</h3>
-        <div className="space-y-3">
-          {tournament.matches.map((m) => (
-            <div
-              key={m.id}
-              className={`bg-surface rounded-xl border p-4 ${
-                m.status === "LOCKED"
-                  ? "border-border opacity-50"
-                  : m.status === "READY"
+        <div className="flex flex-col gap-3">
+          {tournament.matches.map((m) => {
+            const setsSummary =
+              m.match?.sets?.length
+                ? m.match.sets
+                    .map((s) => `${s.teamAScore}-${s.teamBScore}`)
+                    .join(", ")
+                : null;
+
+            const cardClass = `bg-surface rounded-xl border p-4 ${
+              m.status === "LOCKED"
+                ? "border-border opacity-50"
+                : m.status === "READY"
                   ? "border-primary"
                   : "border-border"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-neutral font-medium">
-                  {getRoundLabel(m.round)} &middot; Match {m.position + 1}
-                </span>
-                <StatusBadge status={m.status} />
+            }`;
+
+            const inner = (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-neutral font-medium">
+                    {getRoundLabel(m.round)} &middot; Match {m.position + 1}
+                  </span>
+                  <StatusBadge status={m.status} />
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`text-sm ${
+                      m.winnerId === m.teamAId
+                        ? "font-bold text-success"
+                        : "text-text-primary"
+                    }`}
+                  >
+                    {getTeamName(m.teamA)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-sm ${
+                      m.winnerId === m.teamBId
+                        ? "font-bold text-success"
+                        : "text-text-primary"
+                    }`}
+                  >
+                    {getTeamName(m.teamB)}
+                  </span>
+                </div>
+                {setsSummary && (
+                  <p className="text-xs text-neutral mt-2">Sets: {setsSummary}</p>
+                )}
+              </>
+            );
+
+            return m.match ? (
+              <Link
+                key={m.id}
+                href={`/matches/${m.match.id}`}
+                className={`block w-full ${cardClass} active:scale-[0.99] transition-transform`}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={m.id} className={cardClass}>
+                {inner}
               </div>
-              <div className="flex items-center justify-between mb-1">
-                <span
-                  className={`text-sm ${
-                    m.winnerId === m.teamAId
-                      ? "font-bold text-success"
-                      : "text-text-primary"
-                  }`}
-                >
-                  {getTeamName(m.teamA)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span
-                  className={`text-sm ${
-                    m.winnerId === m.teamBId
-                      ? "font-bold text-success"
-                      : "text-text-primary"
-                  }`}
-                >
-                  {getTeamName(m.teamB)}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

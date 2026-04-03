@@ -6,17 +6,23 @@ import { authOptions } from "@/lib/auth";
 export async function GET() {
   const tournaments = await prisma.tournament.findMany({
     include: {
-      teams: {
+      _count: { select: { matches: true, teams: true } },
+      matches: {
+        orderBy: { round: "desc" },
+        take: 1,
         include: {
-          player1: {
-            include: { user: { select: { name: true, image: true } } },
-          },
-          player2: {
-            include: { user: { select: { name: true, image: true } } },
+          winner: {
+            include: {
+              player1: {
+                include: { user: { select: { name: true } } },
+              },
+              player2: {
+                include: { user: { select: { name: true } } },
+              },
+            },
           },
         },
       },
-      _count: { select: { matches: true, teams: true } },
     },
     orderBy: { createdAt: "desc" },
   });

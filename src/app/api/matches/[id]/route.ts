@@ -31,7 +31,21 @@ export async function GET(
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
-  return NextResponse.json(match);
+  const actorIds = [
+    ...new Set(match.eventLogs.map((log) => log.updatedBy).filter(Boolean)),
+  ];
+  const actors = await prisma.user.findMany({
+    where: { id: { in: actorIds } },
+    select: { id: true, name: true },
+  });
+  const nameByUserId = new Map(actors.map((u) => [u.id, u.name]));
+
+  const eventLogs = match.eventLogs.map((log) => ({
+    ...log,
+    updatedByUser: { name: nameByUserId.get(log.updatedBy) ?? null },
+  }));
+
+  return NextResponse.json({ ...match, eventLogs });
 }
 
 export async function PATCH(

@@ -69,7 +69,7 @@ export default function LeaderboardPage() {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-3">
         {players?.map((p, i) => {
           const winRate =
             p.matchesPlayed > 0
@@ -77,7 +77,11 @@ export default function LeaderboardPage() {
               : 0;
 
           return (
-            <Link key={p.id} href={`/players/${p.id}`}>
+            <Link
+              key={p.id}
+              href={`/players/${p.id}`}
+              className="block w-full"
+            >
               <div className="bg-surface rounded-xl border border-border p-4 flex items-center gap-4">
                 <span className="text-lg font-bold text-neutral w-8 text-center tabular-nums">
                   {i + 1}

@@ -35,12 +35,19 @@ export default function HomePage() {
             Start Match
           </Button>
         </Link>
-        <Link href={session ? "/tournaments/new" : "/auth/signin"} className="block">
-          <Button variant="secondary" fullWidth size="lg">
-            <Plus size={18} />
-            Create Tournament
-          </Button>
-        </Link>
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/tournaments" className="block">
+            <Button variant="secondary" fullWidth size="lg">
+              Tournaments
+            </Button>
+          </Link>
+          <Link href={session ? "/tournaments/new" : "/auth/signin"} className="block">
+            <Button variant="secondary" fullWidth size="lg">
+              <Plus size={18} />
+              New
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div>

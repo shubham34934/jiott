@@ -29,6 +29,7 @@ interface EventLogEntry {
   action: string;
   newValue: Record<string, unknown> | null;
   updatedBy: string;
+  updatedByUser: { name: string | null };
   createdAt: string;
 }
 
@@ -286,7 +287,13 @@ export default function MatchDetailPage({
               >
                 <div>
                   <p className="text-sm font-medium">{description}</p>
-                  <p className="text-xs text-neutral">{time}</p>
+                  <p className="text-xs text-neutral">
+                    {time}
+                    {log.updatedByUser?.name != null &&
+                    log.updatedByUser.name.trim() !== ""
+                      ? ` · ${log.updatedByUser.name}`
+                      : " · Unknown"}
+                  </p>
                 </div>
               </div>
             );
