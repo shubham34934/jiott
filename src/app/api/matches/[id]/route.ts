@@ -32,6 +32,40 @@ export async function GET(
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
+  const tournamentSlot = await prisma.tournamentMatch.findFirst({
+    where: { matchId: id },
+    select: {
+      round: true,
+      position: true,
+      tournament: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          matchType: true,
+          status: true,
+          _count: { select: { teams: true } },
+        },
+      },
+    },
+  });
+
+  const tournamentContext = tournamentSlot
+    ? {
+        id: tournamentSlot.tournament.id,
+        name: tournamentSlot.tournament.name,
+        format:
+          tournamentSlot.tournament.type === "ROUND_ROBIN"
+            ? "Round robin"
+            : "Knockout",
+        matchType: tournamentSlot.tournament.matchType,
+        status: tournamentSlot.tournament.status,
+        teamCount: tournamentSlot.tournament._count.teams,
+        round: tournamentSlot.round,
+        position: tournamentSlot.position,
+      }
+    : null;
+
   const actorIds = [
     ...new Set(match.eventLogs.map((log) => log.updatedBy).filter(Boolean)),
   ];
@@ -46,7 +80,51 @@ export async function GET(
     updatedByUser: { name: nameByUserId.get(log.updatedBy) ?? null },
   }));
 
-  return NextResponse.json({ ...match, eventLogs });
+  const session = await getServerSession(authOptions);
+  const canDelete = session?.user?.id === match.createdBy;
+
+  return NextResponse.json({
+    ...match,
+    eventLogs,
+    tournamentContext,
+    canDelete,
+  });
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const match = await prisma.match.findUnique({
+    where: { id },
+    select: { id: true, createdBy: true },
+  });
+
+  if (!match) {
+    return NextResponse.json({ error: "Match not found" }, { status: 404 });
+  }
+
+  if (match.createdBy !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await prisma.tournamentMatch.updateMany({
+    where: { matchId: id },
+    data: { matchId: null },
+  });
+
+  await prisma.match.delete({
+    where: { id },
+  });
+
+  return NextResponse.json({ success: true });
 }
 
 export async function PATCH(

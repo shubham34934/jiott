@@ -25,6 +25,9 @@ interface MatchCardProps {
   sets: SetData[];
   createdAt: string;
   isFriendly?: boolean;
+  isTournamentMatch?: boolean;
+  /** Set when the match is linked to a tournament bracket */
+  tournamentName?: string | null;
   linkPrefix?: string;
 }
 
@@ -35,6 +38,8 @@ export function MatchCard({
   sets,
   createdAt,
   isFriendly = false,
+  isTournamentMatch = false,
+  tournamentName = null,
   linkPrefix = "/matches",
 }: MatchCardProps) {
   const teamA = participants.filter((p) => p.team === "A");
@@ -63,7 +68,7 @@ export function MatchCard({
     <Link href={`${linkPrefix}/${id}`} className="block">
       <div className="bg-surface rounded-xl border border-border p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {status === "COMPLETED" ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
                 <CheckCircle2 size={14} className="text-success" />
@@ -83,6 +88,14 @@ export function MatchCard({
           </div>
           <span className="text-xs text-neutral">{date}</span>
         </div>
+
+        {isTournamentMatch && tournamentName && (
+          <div className="mb-3">
+            <span className="inline-flex max-w-full items-center text-xs font-medium text-amber-800 bg-amber-50 rounded-full px-2.5 py-1 truncate">
+              Tournament: <b className="font-bold">{tournamentName}</b>
+            </span>
+          </div>
+        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">

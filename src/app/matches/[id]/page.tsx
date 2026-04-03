@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, use } from "react";
+import { Suspense, use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight, Medal } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SetScoreRow } from "@/components/SetScoreRow";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Participant {
   team: "A" | "B";
@@ -34,6 +35,17 @@ interface EventLogEntry {
   createdAt: string;
 }
 
+interface TournamentContext {
+  id: string;
+  name: string;
+  format: string;
+  matchType: string;
+  status: string;
+  teamCount: number;
+  round: number;
+  position: number;
+}
+
 interface MatchData {
   id: string;
   type: string;
@@ -45,6 +57,8 @@ interface MatchData {
   sets: SetData[];
   eventLogs: EventLogEntry[];
   createdAt: string;
+  tournamentContext?: TournamentContext | null;
+  canDelete?: boolean;
 }
 
 /** Only same-app relative paths; blocks open redirects. */
@@ -90,6 +104,8 @@ export default function MatchDetailPage({
 }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const [deleteMatchOpen, setDeleteMatchOpen] = useState(false);
 
   const { data: match, isLoading } = useQuery<MatchData>({
     queryKey: ["match", id],
@@ -127,6 +143,31 @@ export default function MatchDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["match", id] });
       queryClient.invalidateQueries({ queryKey: ["matches"] });
+    },
+  });
+
+  const deleteMatch = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`/api/matches/${id}`, { method: "DELETE" });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error(
+          typeof body.error === "string" ? body.error : "Failed to delete match"
+        );
+      }
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      const m = queryClient.getQueryData<MatchData>(["match", id]);
+      if (m?.tournamentContext?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["tournament", m.tournamentContext.id],
+        });
+      }
+      const params = new URLSearchParams(window.location.search);
+      const to = safeReturnPath(params.get("returnTo"));
+      router.push(to ?? "/matches");
     },
   });
 
@@ -206,6 +247,41 @@ export default function MatchDetailPage({
       </div>
 
       <div className="px-4 pt-4">
+        {match.tournamentContext && (
+          <Link
+            href={`/tournaments/${match.tournamentContext.id}`}
+            className="flex items-stretch gap-3 bg-surface rounded-xl border border-border p-4 mb-6 active:scale-[0.99] transition-transform shadow-sm"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800">
+              <Medal size={22} strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral mb-0.5">
+                Tournament
+              </p>
+              <p className="text-base font-semibold text-text-primary truncate">
+                {match.tournamentContext.name}
+              </p>
+              <p className="text-xs text-neutral mt-1.5">
+                {match.tournamentContext.format} ·{" "}
+                {match.tournamentContext.matchType} ·{" "}
+                {match.tournamentContext.teamCount} teams
+              </p>
+              <p className="text-xs text-neutral mt-0.5">
+                Bracket: round {match.tournamentContext.round} · match{" "}
+                {match.tournamentContext.position + 1}
+              </p>
+              <p className="text-xs font-medium text-primary mt-2 flex items-center gap-0.5">
+                Open tournament
+                <ChevronRight size={14} className="shrink-0" />
+              </p>
+            </div>
+            <div className="shrink-0 self-start pt-0.5">
+              <StatusBadge status={match.tournamentContext.status} />
+            </div>
+          </Link>
+        )}
+
         <div className="bg-surface rounded-xl border-2 border-border p-4 mb-6">
           <div
             className={`rounded-lg p-3 mb-2 ${
@@ -296,6 +372,31 @@ export default function MatchDetailPage({
               : "Complete Match"}
           </Button>
         )}
+
+        {match.canDelete && (
+          <Button
+            fullWidth
+            variant="secondary"
+            size="lg"
+            className="mb-6 border-red-200 text-red-700 hover:bg-red-50"
+            onClick={() => setDeleteMatchOpen(true)}
+            disabled={deleteMatch.isPending}
+          >
+            {deleteMatch.isPending ? "Deleting..." : "Delete match"}
+          </Button>
+        )}
+
+        <ConfirmDialog
+          open={deleteMatchOpen}
+          onClose={() => setDeleteMatchOpen(false)}
+          title="Delete this match?"
+          description="This match will be removed permanently. This cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="danger"
+          isPending={deleteMatch.isPending}
+          onConfirm={() => deleteMatch.mutate()}
+        />
 
         <h2 className="text-lg font-bold mb-3">Event History</h2>
         <div className="space-y-0 mb-8">

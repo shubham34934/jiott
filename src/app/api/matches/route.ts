@@ -7,11 +7,34 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const friendly = searchParams.get("friendly");
+  const tournament = searchParams.get("tournament");
   const limit = parseInt(searchParams.get("limit") || "20");
+
+  const linkedRows = await prisma.tournamentMatch.findMany({
+    where: { matchId: { not: null } },
+    select: { matchId: true },
+  });
+  const linkedMatchIds = [
+    ...new Set(
+      linkedRows
+        .map((r) => r.matchId)
+        .filter((id): id is string => id != null)
+    ),
+  ];
+  const linkedSet = new Set(linkedMatchIds);
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status as "ONGOING" | "COMPLETED";
   if (friendly === "true") where.isFriendly = true;
+
+  if (tournament === "exclude" && linkedMatchIds.length > 0) {
+    where.id = { notIn: linkedMatchIds };
+  } else if (tournament === "only") {
+    if (linkedMatchIds.length === 0) {
+      return NextResponse.json([]);
+    }
+    where.id = { in: linkedMatchIds };
+  }
 
   const matches = await prisma.match.findMany({
     where,
@@ -31,7 +54,32 @@ export async function GET(req: Request) {
     take: limit,
   });
 
-  return NextResponse.json(matches);
+  const matchIds = matches.map((m) => m.id);
+  const tournamentLinks =
+    matchIds.length > 0
+      ? await prisma.tournamentMatch.findMany({
+          where: { matchId: { in: matchIds } },
+          select: {
+            matchId: true,
+            tournament: { select: { name: true } },
+          },
+        })
+      : [];
+
+  const tournamentNameByMatchId = new Map<string, string>();
+  for (const row of tournamentLinks) {
+    if (row.matchId && !tournamentNameByMatchId.has(row.matchId)) {
+      tournamentNameByMatchId.set(row.matchId, row.tournament.name);
+    }
+  }
+
+  const payload = matches.map((m) => ({
+    ...m,
+    isTournamentMatch: linkedSet.has(m.id),
+    tournamentName: tournamentNameByMatchId.get(m.id) ?? null,
+  }));
+
+  return NextResponse.json(payload);
 }
 
 export async function POST(req: Request) {

@@ -95,7 +95,65 @@ export async function GET(
     }
   }
 
-  return NextResponse.json(tournament);
+  const session = await getServerSession(authOptions);
+  const canDelete = session?.user?.id === tournament.createdBy;
+
+  return NextResponse.json({ ...tournament, canDelete });
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { id: true, createdBy: true },
+  });
+
+  if (!tournament) {
+    return NextResponse.json(
+      { error: "Tournament not found" },
+      { status: 404 }
+    );
+  }
+
+  if (tournament.createdBy !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const tms = await prisma.tournamentMatch.findMany({
+    where: { tournamentId: id },
+    select: { matchId: true },
+  });
+  const matchIds = [
+    ...new Set(
+      tms.map((t) => t.matchId).filter((mid): mid is string => mid != null)
+    ),
+  ];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.tournamentMatch.updateMany({
+      where: { tournamentId: id },
+      data: { matchId: null },
+    });
+    if (matchIds.length > 0) {
+      await tx.match.deleteMany({
+        where: { id: { in: matchIds } },
+      });
+    }
+    await tx.tournament.delete({
+      where: { id },
+    });
+  });
+
+  return NextResponse.json({ success: true });
 }
 
 export async function PATCH(

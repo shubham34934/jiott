@@ -1,10 +1,13 @@
 "use client";
 
-import { use } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { use, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface TeamData {
   id: string;
@@ -37,6 +40,7 @@ interface TournamentData {
   status: string;
   teams: TeamData[];
   matches: TournamentMatchData[];
+  canDelete?: boolean;
 }
 
 function getTeamName(team: TeamData | null): string {
@@ -57,10 +61,33 @@ export default function TournamentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const [deleteTournamentOpen, setDeleteTournamentOpen] = useState(false);
 
   const { data: tournament, isLoading } = useQuery<TournamentData>({
     queryKey: ["tournament", id],
     queryFn: () => fetch(`/api/tournaments/${id}`).then((r) => r.json()),
+  });
+
+  const deleteTournament = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`/api/tournaments/${id}`, { method: "DELETE" });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error(
+          typeof body.error === "string"
+            ? body.error
+            : "Failed to delete tournament"
+        );
+      }
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      router.push("/tournaments");
+    },
   });
 
   if (isLoading || !tournament) {
@@ -205,6 +232,33 @@ export default function TournamentPage({
           })}
         </div>
       </div>
+
+      {tournament.canDelete && (
+        <div className="px-4 pb-8">
+          <Button
+            fullWidth
+            variant="secondary"
+            size="lg"
+            className="border-red-200 text-red-700 hover:bg-red-50"
+            onClick={() => setDeleteTournamentOpen(true)}
+            disabled={deleteTournament.isPending}
+          >
+            {deleteTournament.isPending ? "Deleting..." : "Delete tournament"}
+          </Button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={deleteTournamentOpen}
+        onClose={() => setDeleteTournamentOpen(false)}
+        title="Delete this tournament?"
+        description={`“${tournament.name}” and all linked matches will be removed permanently. This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        isPending={deleteTournament.isPending}
+        onConfirm={() => deleteTournament.mutate()}
+      />
     </div>
   );
 }

@@ -11,8 +11,9 @@ export default function HomePage() {
   const { data: session } = useSession();
 
   const { data: matches, isLoading } = useQuery({
-    queryKey: ["matches", "recent"],
-    queryFn: () => fetch("/api/matches?limit=5").then((r) => r.json()),
+    queryKey: ["matches", "recent", "exclude-tournament"],
+    queryFn: () =>
+      fetch("/api/matches?limit=5&tournament=exclude").then((r) => r.json()),
   });
 
   const firstName = session?.user?.name?.split(" ")[0];
@@ -82,6 +83,8 @@ export default function HomePage() {
               id: string;
               status: "ONGOING" | "COMPLETED" | "DISPUTED";
               isFriendly?: boolean;
+              isTournamentMatch?: boolean;
+              tournamentName?: string | null;
               participants: Array<{
                 team: "A" | "B";
                 player: {
@@ -97,6 +100,8 @@ export default function HomePage() {
                 id={match.id}
                 status={match.status}
                 isFriendly={match.isFriendly}
+                isTournamentMatch={match.isTournamentMatch}
+                tournamentName={match.tournamentName}
                 participants={match.participants}
                 sets={match.sets}
                 createdAt={match.createdAt}
