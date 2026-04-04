@@ -15,6 +15,7 @@ export async function GET(req: Request) {
   const status = searchParams.get("status");
   const friendly = searchParams.get("friendly");
   const tournament = searchParams.get("tournament");
+  const matchType = searchParams.get("type");
   const rawLimit = parseInt(searchParams.get("limit") || String(DEFAULT_LIMIT), 10);
   const limit = Math.min(
     MAX_LIMIT,
@@ -23,7 +24,15 @@ export async function GET(req: Request) {
   const rawOffset = parseInt(searchParams.get("offset") || "0", 10);
   const offset = Math.max(0, Number.isNaN(rawOffset) ? 0 : rawOffset);
 
-  const listParams = { status, friendly, tournament, limit, offset };
+  const listParams = {
+    status,
+    friendly,
+    tournament,
+    matchType:
+      matchType === "SINGLES" || matchType === "DOUBLES" ? matchType : null,
+    limit,
+    offset,
+  };
   const cacheKey = JSON.stringify(listParams);
 
   const body = await unstable_cache(

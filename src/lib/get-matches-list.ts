@@ -7,12 +7,14 @@ export type MatchesListParams = {
   status: string | null;
   friendly: string | null;
   tournament: string | null;
+  /** `SINGLES` | `DOUBLES` when set */
+  matchType: string | null;
   limit: number;
   offset: number;
 };
 
 export async function getMatchesListData(params: MatchesListParams) {
-  const { status, friendly, tournament, limit, offset } = params;
+  const { status, friendly, tournament, matchType, limit, offset } = params;
 
   const linkedRows = await prisma.tournamentMatch.findMany({
     where: { matchId: { not: null } },
@@ -30,6 +32,9 @@ export async function getMatchesListData(params: MatchesListParams) {
   const where: Record<string, unknown> = {};
   if (status) where.status = status as "ONGOING" | "COMPLETED";
   if (friendly === "true") where.isFriendly = true;
+  if (matchType === "SINGLES" || matchType === "DOUBLES") {
+    where.type = matchType;
+  }
 
   if (tournament === "exclude" && linkedMatchIds.length > 0) {
     where.id = { notIn: linkedMatchIds };

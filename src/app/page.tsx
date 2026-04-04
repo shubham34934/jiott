@@ -131,6 +131,15 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      <div className="mt-10 pb-6 text-center">
+        <Link
+          href="/feedback"
+          className="text-sm text-neutral hover:text-primary font-medium"
+        >
+          Send feedback
+        </Link>
+      </div>
     </div>
   );
 }

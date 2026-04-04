@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, Trophy, Target, TrendingUp } from "lucide-react";
+import {
+  Flame,
+  LogOut,
+  MessageSquareText,
+  Trophy,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/Button";
@@ -48,6 +55,13 @@ export default function ProfilePage() {
             <Button variant="secondary" fullWidth size="lg">
               Create account
             </Button>
+          </Link>
+          <Link
+            href="/feedback"
+            className="flex items-center justify-center gap-2 text-sm text-neutral hover:text-primary py-2"
+          >
+            <MessageSquareText size={18} />
+            Send feedback
           </Link>
         </div>
       </div>
@@ -108,7 +122,31 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-3 px-4 mt-3">
+        <div className="rounded-xl border border-border bg-surface p-4 text-center shadow-sm ring-1 ring-white/[0.03]">
+          <Flame size={20} className="text-warning mx-auto mb-2" />
+          <p className="text-xl font-bold text-text-primary">
+            {player?.currentWinStreak ?? 0}
+          </p>
+          <p className="text-xs text-neutral">Current streak</p>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-4 text-center shadow-sm ring-1 ring-white/[0.03]">
+          <Flame size={20} className="text-gold mx-auto mb-2 opacity-90" />
+          <p className="text-xl font-bold text-text-primary">
+            {player?.bestWinStreak ?? 0}
+          </p>
+          <p className="text-xs text-neutral">Best streak</p>
+        </div>
+      </div>
+
       <div className="px-4 mt-6">
+        <Link
+          href="/feedback"
+          className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary hover:border-border-strong transition-colors mb-6"
+        >
+          <MessageSquareText size={20} className="text-primary shrink-0" />
+          Send feedback
+        </Link>
         <h3 className="mb-3 text-base font-bold text-text-primary">Match History</h3>
         <div className="space-y-3">
           {player?.matchParticipations?.length === 0 && (

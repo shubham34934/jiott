@@ -5,7 +5,11 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { InfiniteScrollSentinel } from "@/components/InfiniteScrollSentinel";
 import { MatchFiltersBar } from "@/components/MatchFiltersBar";
 import { MatchListCards, type MatchListItem } from "@/components/MatchListCards";
-import type { MatchFilterTab, MatchSourceTab } from "@/lib/matchFilters";
+import type {
+  MatchFilterTab,
+  MatchFormatTab,
+  MatchSourceTab,
+} from "@/lib/matchFilters";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 const MATCHES_PAGE_SIZE = 20;
@@ -20,6 +24,7 @@ type MatchesApiResponse = {
 export default function MatchesPage() {
   const [filter, setFilter] = useState<MatchFilterTab>("all");
   const [source, setSource] = useState<MatchSourceTab>("regular");
+  const [format, setFormat] = useState<MatchFormatTab>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersMounted, setFiltersMounted] = useState(false);
 
@@ -35,7 +40,7 @@ export default function MatchesPage() {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery({
-    queryKey: ["matches", "infinite", filter, source],
+    queryKey: ["matches", "infinite", filter, source, format],
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<MatchesApiResponse> => {
       const params = new URLSearchParams();
@@ -50,6 +55,9 @@ export default function MatchesPage() {
         params.set("tournament", "exclude");
       } else if (source === "tournament") {
         params.set("tournament", "only");
+      }
+      if (format === "SINGLES" || format === "DOUBLES") {
+        params.set("type", format);
       }
       const qs = params.toString();
       const url = `/api/matches?${qs}`;
@@ -84,8 +92,10 @@ export default function MatchesPage() {
       <MatchFiltersBar
         filter={filter}
         source={source}
+        format={format}
         onFilterChange={setFilter}
         onSourceChange={setSource}
+        onFormatChange={setFormat}
         expanded={filtersOpen}
         onExpandedChange={setFiltersOpen}
         placeholder={!filtersMounted}

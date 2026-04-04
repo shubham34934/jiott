@@ -24,7 +24,7 @@ export const dashboardMatchesPrefetch = {
 
 export function prefetchMatchesListFirstPage(queryClient: QueryClient) {
   return queryClient.prefetchInfiniteQuery({
-    queryKey: ["matches", "infinite", "all", "regular"],
+    queryKey: ["matches", "infinite", "all", "regular", "all"],
     initialPageParam: 0,
     staleTime: QUERY_STALE_TIME_MS,
     queryFn: async ({

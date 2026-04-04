@@ -2,7 +2,7 @@
 
 import { use, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Trophy, Target, TrendingUp } from "lucide-react";
+import { ArrowLeft, Flame, Trophy, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { MatchFiltersBar } from "@/components/MatchFiltersBar";
@@ -12,6 +12,7 @@ import { Button } from "@/components/Button";
 import {
   matchPassesFilters,
   type MatchFilterTab,
+  type MatchFormatTab,
   type MatchSourceTab,
 } from "@/lib/matchFilters";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
@@ -25,6 +26,7 @@ export default function PlayerProfilePage({
 
   const [matchFilter, setMatchFilter] = useState<MatchFilterTab>("all");
   const [matchSource, setMatchSource] = useState<MatchSourceTab>("all");
+  const [matchFormat, setMatchFormat] = useState<MatchFormatTab>("all");
   const [matchFiltersOpen, setMatchFiltersOpen] = useState(false);
 
   const { data: player, isLoading } = useQuery({
@@ -70,9 +72,9 @@ export default function PlayerProfilePage({
         (mp: { match: MatchListItem }) => mp.match
       ) ?? [];
     return raw.filter((m: MatchListItem) =>
-      matchPassesFilters(m, matchFilter, matchSource)
+      matchPassesFilters(m, matchFilter, matchSource, matchFormat)
     );
-  }, [player, matchFilter, matchSource]);
+  }, [player, matchFilter, matchSource, matchFormat]);
 
   if (isLoading) {
     return (
@@ -142,6 +144,26 @@ export default function PlayerProfilePage({
           <p className="text-2xl font-bold text-text-primary">{winRate}%</p>
           <p className="text-xs text-neutral">Win Rate</p>
         </div>
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
+          <Flame size={20} className="text-warning mb-2" />
+          <p className="text-2xl font-bold text-text-primary">
+            {player.currentWinStreak ?? 0}
+          </p>
+          <p className="text-xs text-neutral">Current streak</p>
+          <p className="text-[10px] text-neutral-light mt-1 leading-snug">
+            Ranked wins in a row
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
+          <Flame size={20} className="text-gold mb-2 opacity-90" />
+          <p className="text-2xl font-bold text-text-primary">
+            {player.bestWinStreak ?? 0}
+          </p>
+          <p className="text-xs text-neutral">Best streak</p>
+          <p className="text-[10px] text-neutral-light mt-1 leading-snug">
+            Best ranked run
+          </p>
+        </div>
       </div>
 
       <div className="mx-4 mt-4 rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
@@ -203,8 +225,10 @@ export default function PlayerProfilePage({
         <MatchFiltersBar
           filter={matchFilter}
           source={matchSource}
+          format={matchFormat}
           onFilterChange={setMatchFilter}
           onSourceChange={setMatchSource}
+          onFormatChange={setMatchFormat}
           expanded={matchFiltersOpen}
           onExpandedChange={setMatchFiltersOpen}
         />

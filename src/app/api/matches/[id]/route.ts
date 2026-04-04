@@ -6,6 +6,7 @@ import { LEADERBOARD_CACHE_TAG } from "@/lib/get-leaderboard";
 import { PLAYERS_LIST_CACHE_TAG } from "@/lib/get-players-list";
 import { getApiActor } from "@/lib/sync-neon-user";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
+import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
 
@@ -175,34 +176,19 @@ async function completeMatch(matchId: string, userId: string) {
     );
   }
 
-  let teamAWins = 0;
-  let teamBWins = 0;
-
-  for (const set of match.sets) {
-    const a = set.teamAScore;
-    const b = set.teamBScore;
-    const target = match.pointsPerSet;
-    const winner = Math.max(a, b);
-    const loser = Math.min(a, b);
-    const isValid =
-      winner >= target &&
-      a !== b &&
-      ((winner === target && loser < target - 1) ||
-        (winner > target && loser >= target - 1 && winner - loser === 2));
-    if (!isValid) continue;
-    if (a > b) teamAWins++;
-    else teamBWins++;
-  }
-
-  const requiredWins = Math.ceil(match.totalSets / 2);
-  if (teamAWins < requiredWins && teamBWins < requiredWins) {
+  const outcome = getCompletedMatchOutcome({
+    sets: match.sets,
+    totalSets: match.totalSets,
+    pointsPerSet: match.pointsPerSet,
+  });
+  if (!outcome) {
     return NextResponse.json(
       { error: "Match is not yet decided" },
       { status: 400 }
     );
   }
 
-  const winningTeam = teamAWins > teamBWins ? "A" : "B";
+  const { winningTeam, teamAWins, teamBWins } = outcome;
   const losingTeam = winningTeam === "A" ? "B" : "A";
 
   const winners = match.participants.filter((p) => p.team === winningTeam);
@@ -229,12 +215,17 @@ async function completeMatch(matchId: string, userId: string) {
     const loserDelta = loserNew - avgLoserRating;
 
     for (const winner of winners) {
+      const p = winner.player;
+      const nextCurrent = p.currentWinStreak + 1;
+      const nextBest = Math.max(p.bestWinStreak, nextCurrent);
       await prisma.player.update({
         where: { id: winner.playerId },
         data: {
           rating: { increment: winnerDelta },
           matchesPlayed: { increment: 1 },
           matchesWon: { increment: 1 },
+          currentWinStreak: nextCurrent,
+          bestWinStreak: nextBest,
         },
       });
     }
@@ -245,6 +236,7 @@ async function completeMatch(matchId: string, userId: string) {
         data: {
           rating: { increment: loserDelta },
           matchesPlayed: { increment: 1 },
+          currentWinStreak: 0,
         },
       });
     }

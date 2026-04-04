@@ -3,6 +3,7 @@
 import { ChevronDown, Filter } from "lucide-react";
 import {
   type MatchFilterTab,
+  type MatchFormatTab,
   type MatchSourceTab,
 } from "@/lib/matchFilters";
 
@@ -19,11 +20,19 @@ const SOURCE_TABS: { key: MatchSourceTab; label: string; hint: string }[] = [
   { key: "all", label: "All sources", hint: "Include everything" },
 ];
 
+const FORMAT_TABS: { key: MatchFormatTab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "SINGLES", label: "Singles" },
+  { key: "DOUBLES", label: "Doubles" },
+];
+
 export interface MatchFiltersBarProps {
   filter: MatchFilterTab;
   source: MatchSourceTab;
+  format: MatchFormatTab;
   onFilterChange: (next: MatchFilterTab) => void;
   onSourceChange: (next: MatchSourceTab) => void;
+  onFormatChange: (next: MatchFormatTab) => void;
   expanded: boolean;
   onExpandedChange: (next: boolean) => void;
   /** When true, render a skeleton bar (matches list avoids SSR/client mismatch). */
@@ -33,8 +42,10 @@ export interface MatchFiltersBarProps {
 export function MatchFiltersBar({
   filter,
   source,
+  format,
   onFilterChange,
   onSourceChange,
+  onFormatChange,
   expanded,
   onExpandedChange,
   placeholder,
@@ -51,6 +62,8 @@ export function MatchFiltersBar({
     SOURCE_TABS.find((t) => t.key === source)?.label ?? source;
   const statusSummary =
     FILTER_TABS.find((t) => t.key === filter)?.label ?? filter;
+  const formatSummary =
+    FORMAT_TABS.find((t) => t.key === format)?.label ?? format;
 
   return (
     <div className="mb-6">
@@ -68,7 +81,7 @@ export function MatchFiltersBar({
             Filters
           </span>
           <p className="text-xs text-neutral truncate mt-0.5">
-            {sourceSummary} · {statusSummary}
+            {sourceSummary} · {formatSummary} · {statusSummary}
           </p>
         </div>
         <ChevronDown
@@ -102,6 +115,31 @@ export function MatchFiltersBar({
                   onClick={() => onSourceChange(tab.key)}
                   className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${
                     source === tab.key
+                      ? "bg-surface-raised text-text-primary shadow-sm ring-1 ring-white/[0.06]"
+                      : "text-neutral"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section aria-labelledby="filter-heading-format">
+            <p
+              id="filter-heading-format"
+              className="text-xs text-neutral mb-2 font-medium uppercase tracking-wide"
+            >
+              Format
+            </p>
+            <div className="flex rounded-xl border border-border bg-background p-1">
+              {FORMAT_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => onFormatChange(tab.key)}
+                  className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                    format === tab.key
                       ? "bg-surface-raised text-text-primary shadow-sm ring-1 ring-white/[0.06]"
                       : "text-neutral"
                   }`}

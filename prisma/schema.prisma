@@ -24,6 +24,26 @@ model User {
   matchesCreated     Match[]       @relation("MatchCreatedBy")
   tournamentsCreated Tournament[]  @relation("TournamentCreatedBy")
   eventLogsUpdated   EventLog[]    @relation("EventLogUpdatedBy")
+  feedbacks          Feedback[]
+}
+
+enum FeedbackCategory {
+  GENERAL
+  BUG
+  FEATURE
+}
+
+model Feedback {
+  id           String            @id @default(uuid())
+  category     FeedbackCategory  @default(GENERAL)
+  message      String            @db.Text
+  contactEmail String?
+  pagePath     String?
+  userId       String?
+  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt    DateTime          @default(now())
+
+  @@index([createdAt])
 }
 
 enum OtpType {
@@ -83,6 +103,10 @@ model Player {
   rating              Int                @default(1000)
   matchesPlayed       Int                @default(0)
   matchesWon          Int                @default(0)
+  /** Ranked (non-friendly) wins in a row; resets on loss. */
+  currentWinStreak    Int                @default(0)
+  /** Peak value of `currentWinStreak` over time (ranked matches only). */
+  bestWinStreak       Int                @default(0)
   matchParticipations MatchParticipant[]
   teamsAsPlayer1      Team[]             @relation("TeamPlayer1")
   teamsAsPlayer2      Team[]             @relation("TeamPlayer2")

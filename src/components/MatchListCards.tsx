@@ -4,6 +4,7 @@ import { MatchCard } from "@/components/MatchCard";
 
 export type MatchListItem = {
   id: string;
+  type?: "SINGLES" | "DOUBLES";
   status: "ONGOING" | "COMPLETED" | "DISPUTED";
   isFriendly?: boolean;
   isTournamentMatch?: boolean;
