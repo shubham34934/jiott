@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, Trophy } from "lucide-react";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
+import { RatingDeltaBadge } from "@/components/RatingDeltaBadge";
 import { formatDisplayDate } from "@/lib/formatDisplayDate";
 
 interface Player {
@@ -13,6 +14,7 @@ interface Player {
 
 interface Participant {
   team: "A" | "B";
+  rankedRatingDelta?: number | null;
   player: Player;
 }
 
@@ -148,13 +150,23 @@ export function MatchCard({
               <Trophy size={14} className="text-warning shrink-0" />
             )}
           </div>
-          <span
-            className={`text-lg font-bold tabular-nums shrink-0 ${
-              teamAWon ? "text-success" : "text-neutral"
-            }`}
-          >
-            {teamASetsWon}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {status === "COMPLETED" &&
+              !isFriendly &&
+              teamA[0]?.rankedRatingDelta != null && (
+                <RatingDeltaBadge
+                  delta={teamA[0].rankedRatingDelta}
+                  size="sm"
+                />
+              )}
+            <span
+              className={`text-lg font-bold tabular-nums ${
+                teamAWon ? "text-success" : "text-neutral"
+              }`}
+            >
+              {teamASetsWon}
+            </span>
+          </div>
         </div>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
@@ -163,13 +175,23 @@ export function MatchCard({
               <Trophy size={14} className="text-warning shrink-0" />
             )}
           </div>
-          <span
-            className={`text-lg font-bold tabular-nums shrink-0 ${
-              teamBWon ? "text-success" : "text-neutral"
-            }`}
-          >
-            {teamBSetsWon}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {status === "COMPLETED" &&
+              !isFriendly &&
+              teamB[0]?.rankedRatingDelta != null && (
+                <RatingDeltaBadge
+                  delta={teamB[0].rankedRatingDelta}
+                  size="sm"
+                />
+              )}
+            <span
+              className={`text-lg font-bold tabular-nums ${
+                teamBWon ? "text-success" : "text-neutral"
+              }`}
+            >
+              {teamBSetsWon}
+            </span>
+          </div>
         </div>
       </div>
     </div>

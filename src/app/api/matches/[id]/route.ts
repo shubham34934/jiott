@@ -10,6 +10,19 @@ import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
 
+/** Handles older Prisma payloads / DB rows where streak columns may be missing. */
+function winStreakBaselines(player: {
+  currentWinStreak?: number | null;
+  bestWinStreak?: number | null;
+}) {
+  const c = player.currentWinStreak;
+  const b = player.bestWinStreak;
+  return {
+    current: typeof c === "number" && Number.isFinite(c) ? c : 0,
+    best: typeof b === "number" && Number.isFinite(b) ? b : 0,
+  };
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -194,53 +207,69 @@ async function completeMatch(matchId: string, userId: string) {
   const winners = match.participants.filter((p) => p.team === winningTeam);
   const losers = match.participants.filter((p) => p.team === losingTeam);
 
-  await prisma.match.update({
-    where: { id: matchId },
-    data: { status: "COMPLETED" },
+  await prisma.$transaction(async (tx) => {
+    await tx.match.update({
+      where: { id: matchId },
+      data: { status: "COMPLETED" },
+    });
+
+    if (!match.isFriendly) {
+      const winnerRatings = winners.map((w) => w.player.rating);
+      const loserRatings = losers.map((l) => l.player.rating);
+
+      const avgWinnerRating = calculateTeamRating(winnerRatings);
+      const avgLoserRating = calculateTeamRating(loserRatings);
+
+      const { winnerNew, loserNew } = calculateEloChange(
+        avgWinnerRating,
+        avgLoserRating
+      );
+
+      const winnerDelta = winnerNew - avgWinnerRating;
+      const loserDelta = loserNew - avgLoserRating;
+
+      for (const winner of winners) {
+        const { current: prevCurrent, best: prevBest } = winStreakBaselines(
+          winner.player
+        );
+        const nextCurrent = prevCurrent + 1;
+        const nextBest = Math.max(prevBest, nextCurrent);
+        await tx.matchParticipant.update({
+          where: {
+            matchId_playerId: { matchId, playerId: winner.playerId },
+          },
+          data: { rankedRatingDelta: winnerDelta },
+        });
+        await tx.player.update({
+          where: { id: winner.playerId },
+          data: {
+            rating: { increment: winnerDelta },
+            matchesPlayed: { increment: 1 },
+            matchesWon: { increment: 1 },
+            currentWinStreak: nextCurrent,
+            bestWinStreak: nextBest,
+          },
+        });
+      }
+
+      for (const loser of losers) {
+        await tx.matchParticipant.update({
+          where: {
+            matchId_playerId: { matchId, playerId: loser.playerId },
+          },
+          data: { rankedRatingDelta: loserDelta },
+        });
+        await tx.player.update({
+          where: { id: loser.playerId },
+          data: {
+            rating: { increment: loserDelta },
+            matchesPlayed: { increment: 1 },
+            currentWinStreak: 0,
+          },
+        });
+      }
+    }
   });
-
-  if (!match.isFriendly) {
-    const winnerRatings = winners.map((w) => w.player.rating);
-    const loserRatings = losers.map((l) => l.player.rating);
-
-    const avgWinnerRating = calculateTeamRating(winnerRatings);
-    const avgLoserRating = calculateTeamRating(loserRatings);
-
-    const { winnerNew, loserNew } = calculateEloChange(
-      avgWinnerRating,
-      avgLoserRating
-    );
-
-    const winnerDelta = winnerNew - avgWinnerRating;
-    const loserDelta = loserNew - avgLoserRating;
-
-    for (const winner of winners) {
-      const p = winner.player;
-      const nextCurrent = p.currentWinStreak + 1;
-      const nextBest = Math.max(p.bestWinStreak, nextCurrent);
-      await prisma.player.update({
-        where: { id: winner.playerId },
-        data: {
-          rating: { increment: winnerDelta },
-          matchesPlayed: { increment: 1 },
-          matchesWon: { increment: 1 },
-          currentWinStreak: nextCurrent,
-          bestWinStreak: nextBest,
-        },
-      });
-    }
-
-    for (const loser of losers) {
-      await prisma.player.update({
-        where: { id: loser.playerId },
-        data: {
-          rating: { increment: loserDelta },
-          matchesPlayed: { increment: 1 },
-          currentWinStreak: 0,
-        },
-      });
-    }
-  }
 
   await prisma.eventLog.create({
     data: {

@@ -11,6 +11,7 @@ export type MatchListItem = {
   tournamentName?: string | null;
   participants: Array<{
     team: "A" | "B";
+    rankedRatingDelta?: number | null;
     player: {
       id: string;
       user: { name: string | null; image: string | null };

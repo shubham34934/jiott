@@ -11,11 +11,13 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDisplayDate } from "@/lib/formatDisplayDate";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
+import { RatingDeltaBadge } from "@/components/RatingDeltaBadge";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
 interface Participant {
   team: "A" | "B";
+  rankedRatingDelta?: number | null;
   player: {
     id: string;
     rating: number;
@@ -399,6 +401,13 @@ export function MatchDetailPageClient({
                       teamA.length
                   )}
                 </p>
+                {match.status === "COMPLETED" &&
+                  !match.isFriendly &&
+                  teamA[0]?.rankedRatingDelta != null && (
+                    <p className="mt-1.5">
+                      <RatingDeltaBadge delta={teamA[0].rankedRatingDelta} />
+                    </p>
+                  )}
               </div>
               <span className="text-3xl font-bold tabular-nums text-text-primary">
                 {teamASetsWon}
@@ -420,6 +429,13 @@ export function MatchDetailPageClient({
                       teamB.length
                   )}
                 </p>
+                {match.status === "COMPLETED" &&
+                  !match.isFriendly &&
+                  teamB[0]?.rankedRatingDelta != null && (
+                    <p className="mt-1.5">
+                      <RatingDeltaBadge delta={teamB[0].rankedRatingDelta} />
+                    </p>
+                  )}
               </div>
               <span className="text-3xl font-bold tabular-nums text-text-primary">
                 {teamBSetsWon}
