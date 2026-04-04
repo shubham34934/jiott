@@ -1,17 +1,8 @@
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
-import { Trophy } from "lucide-react";
 import Link from "next/link";
-import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
+import { getLeaderboardPlayersCached } from "@/lib/get-leaderboard";
 
-interface LeaderboardPlayer {
-  id: string;
-  rating: number;
-  matchesPlayed: number;
-  matchesWon: number;
-  user: { name: string | null; image: string | null };
-}
+/** Avoid DB access during `next build`; data is still cached per request via `unstable_cache`. */
+export const dynamic = "force-dynamic";
 
 const podiumIcons = ["🥇", "🥈", "🥉"];
 const podiumBorderColors = [
@@ -20,23 +11,10 @@ const podiumBorderColors = [
   "border-amber-600",
 ];
 
-export default function LeaderboardPage() {
-  const { data: players, isLoading } = useQuery<LeaderboardPlayer[]>({
-    queryKey: ["leaderboard"],
-    queryFn: () => fetch("/api/leaderboard").then((r) => r.json()),
-    staleTime: QUERY_STALE_TIME_MS,
-  });
+export default async function LeaderboardPage() {
+  const players = await getLeaderboardPlayersCached();
 
-  if (isLoading) {
-    return (
-      <div className="px-4 pt-8 text-center text-neutral text-sm">
-        Loading...
-      </div>
-    );
-  }
-
-  const topThree = players?.slice(0, 3) || [];
-  const rest = players?.slice(3) || [];
+  const topThree = players.slice(0, 3);
 
   return (
     <div className="px-4 pt-8">
@@ -72,7 +50,7 @@ export default function LeaderboardPage() {
       )}
 
       <div className="flex flex-col gap-3">
-        {players?.map((p, i) => {
+        {players.map((p, i) => {
           const winRate =
             p.matchesPlayed > 0
               ? Math.round((p.matchesWon / p.matchesPlayed) * 100)
@@ -107,6 +85,12 @@ export default function LeaderboardPage() {
           );
         })}
       </div>
+
+      {players.length === 0 && (
+        <p className="text-sm text-neutral text-center py-12">
+          No players on the leaderboard yet.
+        </p>
+      )}
     </div>
   );
 }

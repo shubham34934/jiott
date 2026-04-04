@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
+import { LEADERBOARD_CACHE_TAG } from "@/lib/get-leaderboard";
+import { PLAYERS_LIST_CACHE_TAG } from "@/lib/get-players-list";
 import { getApiActor } from "@/lib/sync-neon-user";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
@@ -127,6 +129,8 @@ export async function DELETE(
   });
 
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
+  revalidateTag(LEADERBOARD_CACHE_TAG, "max");
+  revalidateTag(PLAYERS_LIST_CACHE_TAG, "max");
 
   return NextResponse.json({ success: true });
 }
@@ -307,6 +311,8 @@ async function completeMatch(matchId: string, userId: string) {
   }
 
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
+  revalidateTag(LEADERBOARD_CACHE_TAG, "max");
+  revalidateTag(PLAYERS_LIST_CACHE_TAG, "max");
 
   return NextResponse.json({ success: true });
 }

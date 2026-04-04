@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getApiActor } from "@/lib/sync-neon-user";
+import { TOURNAMENTS_LIST_CACHE_TAG } from "@/lib/get-tournaments-list";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
 const tournamentInclude = {
@@ -172,6 +174,8 @@ export async function DELETE(
     });
   });
 
+  revalidateTag(TOURNAMENTS_LIST_CACHE_TAG, "max");
+
   return NextResponse.json({ success: true });
 }
 
@@ -222,6 +226,8 @@ export async function PATCH(
         },
       },
     });
+
+    revalidateTag(TOURNAMENTS_LIST_CACHE_TAG, "max");
 
     return NextResponse.json(team);
   }

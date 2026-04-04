@@ -1,31 +1,14 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getApiActor } from "@/lib/sync-neon-user";
+import {
+  getTournamentsListCached,
+  TOURNAMENTS_LIST_CACHE_TAG,
+} from "@/lib/get-tournaments-list";
 
 export async function GET() {
-  const tournaments = await prisma.tournament.findMany({
-    include: {
-      _count: { select: { matches: true, teams: true } },
-      matches: {
-        orderBy: { round: "desc" },
-        take: 1,
-        include: {
-          winner: {
-            include: {
-              player1: {
-                include: { user: { select: { name: true } } },
-              },
-              player2: {
-                include: { user: { select: { name: true } } },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
+  const tournaments = await getTournamentsListCached();
   return NextResponse.json(tournaments);
 }
 
@@ -49,6 +32,8 @@ export async function POST(req: Request) {
       createdBy: actor.prismaUserId,
     },
   });
+
+  revalidateTag(TOURNAMENTS_LIST_CACHE_TAG, "max");
 
   return NextResponse.json(tournament, { status: 201 });
 }

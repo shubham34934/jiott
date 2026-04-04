@@ -161,6 +161,31 @@ export default function MatchDetailPage({
         body: JSON.stringify(data),
       }).then((r) => r.json());
     },
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ["match", id] });
+      const previous = queryClient.getQueryData<MatchData>(["match", id]);
+      queryClient.setQueryData<MatchData>(["match", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          sets: old.sets.map((s) =>
+            s.setNumber === vars.setNumber
+              ? {
+                  ...s,
+                  teamAScore: vars.teamAScore,
+                  teamBScore: vars.teamBScore,
+                }
+              : s
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(["match", id], ctx.previous);
+      }
+    },
     onSettled: () => {
       savingSetRef.current = -1;
       queryClient.invalidateQueries({ queryKey: ["match", id] });

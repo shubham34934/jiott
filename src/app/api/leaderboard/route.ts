@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getLeaderboardPlayersCached } from "@/lib/get-leaderboard";
 
 export async function GET() {
-  const players = await prisma.player.findMany({
-    include: {
-      user: { select: { name: true, email: true, image: true } },
-    },
-    orderBy: [{ rating: "desc" }, { id: "asc" }],
-  });
-
+  const players = await getLeaderboardPlayersCached();
   return NextResponse.json(players);
 }

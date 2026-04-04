@@ -1,4 +1,6 @@
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { TOURNAMENTS_LIST_CACHE_TAG } from "@/lib/get-tournaments-list";
 
 /**
  * After a tournament slot match is marked completed, set tournament to COMPLETED
@@ -61,6 +63,7 @@ export async function syncTournamentCompletionAfterMatch(
         runnerUpTeamId,
       },
     });
+    revalidateTag(TOURNAMENTS_LIST_CACHE_TAG, "max");
     return;
   }
 
@@ -84,4 +87,6 @@ export async function syncTournamentCompletionAfterMatch(
       runnerUpTeamId: loserId,
     },
   });
+
+  revalidateTag(TOURNAMENTS_LIST_CACHE_TAG, "max");
 }

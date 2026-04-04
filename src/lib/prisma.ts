@@ -1,3 +1,7 @@
+/**
+ * Node.js runtime only: Neon pool + `ws` is not supported on Vercel Edge.
+ * Keep Vercel and Neon in the same region (see PERFORMANCE.md / vercel.json).
+ */
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { neonConfig } from "@neondatabase/serverless";

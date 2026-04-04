@@ -36,13 +36,13 @@ export default function ProfilePage() {
         <p className="text-sm text-neutral mb-6 text-center">
           Sign in to track your matches and compete on the leaderboard
         </p>
-        <div className="space-y-3 w-full max-w-xs">
+        <div className="space-y-3 w-full max-w-xs gap-4">
           <Link href="/auth/signin">
             <Button fullWidth size="lg">
               Sign in
             </Button>
           </Link>
-          <Link href="/auth/register">
+          <Link href="/auth/register" className="w-full mt-4">
             <Button variant="secondary" fullWidth size="lg">
               Create account
             </Button>

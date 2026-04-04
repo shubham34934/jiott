@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { TOURNAMENTS_LIST_CACHE_TAG } from "@/lib/get-tournaments-list";
 import { getApiActor } from "@/lib/sync-neon-user";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
@@ -46,6 +48,10 @@ export async function POST(
       select: { matchId: true },
     });
     if (after?.matchId) linked++;
+  }
+
+  if (linked > 0) {
+    revalidateTag(TOURNAMENTS_LIST_CACHE_TAG, "max");
   }
 
   return NextResponse.json({ success: true, linked });

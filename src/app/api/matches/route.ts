@@ -10,8 +10,6 @@ import {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-export const revalidate = 30;
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
