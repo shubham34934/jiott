@@ -24,7 +24,7 @@ export function Avatar({ name, image, size = "md" }: AvatarProps) {
       <img
         src={image}
         alt={name}
-        className={`${sizes[size]} rounded-full object-cover`}
+        className={`${sizes[size]} rounded-full object-cover ring-2 ring-white/20`}
       />
     );
   }

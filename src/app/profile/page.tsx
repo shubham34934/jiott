@@ -32,7 +32,7 @@ export default function ProfilePage() {
     return (
       <div className="px-4 pt-8 flex flex-col items-center justify-center min-h-[60vh]">
         <Trophy size={48} className="text-primary mb-4" />
-        <h2 className="text-xl font-bold mb-2">Welcome to JioTT</h2>
+        <h2 className="text-xl font-bold mb-2 text-text-primary">Welcome to JioTT</h2>
         <p className="text-sm text-neutral mb-6 text-center">
           Sign in to track your matches and compete on the leaderboard
         </p>
@@ -60,7 +60,7 @@ export default function ProfilePage() {
   return (
     <div>
       <div className="flex items-center justify-between px-4 pt-8 mb-4">
-        <h1 className="text-2xl font-bold">Profile</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
         <button
           type="button"
           onClick={() => void signOut()}
@@ -71,7 +71,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-secondary to-primary rounded-2xl mx-4 p-6 text-white">
+      <div className="mx-4 rounded-2xl bg-gradient-to-br from-secondary to-primary p-6 text-white shadow-[0_12px_40px_-12px_rgba(94,158,255,0.45)] ring-1 ring-white/15">
         <div className="flex items-center gap-4">
           <Avatar
             name={session.user.name || ""}
@@ -89,25 +89,25 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 px-4 mt-4">
-        <div className="bg-surface rounded-xl border border-border p-4 text-center">
+        <div className="rounded-xl border border-border bg-surface p-4 text-center shadow-sm ring-1 ring-white/[0.03]">
           <Trophy size={20} className="text-primary mx-auto mb-2" />
-          <p className="text-xl font-bold">{player?.rating || 1000}</p>
+          <p className="text-xl font-bold text-text-primary">{player?.rating || 1000}</p>
           <p className="text-xs text-neutral">Rating</p>
         </div>
-        <div className="bg-surface rounded-xl border border-border p-4 text-center">
+        <div className="rounded-xl border border-border bg-surface p-4 text-center shadow-sm ring-1 ring-white/[0.03]">
           <Target size={20} className="text-success mx-auto mb-2" />
-          <p className="text-xl font-bold">{player?.matchesWon || 0}</p>
+          <p className="text-xl font-bold text-text-primary">{player?.matchesWon || 0}</p>
           <p className="text-xs text-neutral">Wins</p>
         </div>
-        <div className="bg-surface rounded-xl border border-border p-4 text-center">
+        <div className="rounded-xl border border-border bg-surface p-4 text-center shadow-sm ring-1 ring-white/[0.03]">
           <TrendingUp size={20} className="text-secondary mx-auto mb-2" />
-          <p className="text-xl font-bold">{winRate}%</p>
+          <p className="text-xl font-bold text-text-primary">{winRate}%</p>
           <p className="text-xs text-neutral">Win Rate</p>
         </div>
       </div>
 
       <div className="px-4 mt-6">
-        <h3 className="font-bold text-base mb-3">Match History</h3>
+        <h3 className="mb-3 text-base font-bold text-text-primary">Match History</h3>
         <div className="space-y-3">
           {player?.matchParticipations?.length === 0 && (
             <p className="text-sm text-neutral text-center py-4">

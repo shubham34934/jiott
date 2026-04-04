@@ -22,10 +22,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none";
 
     const variants = {
-      primary: "bg-primary text-white hover:bg-primary-light",
+      primary:
+        "bg-primary text-white shadow-[0_0_20px_-4px_rgba(94,158,255,0.5)] hover:bg-primary-light",
       secondary:
-        "bg-surface text-text-primary border border-border hover:bg-background",
-      ghost: "text-primary hover:bg-blue-50",
+        "bg-surface-raised text-text-primary border border-border hover:bg-surface-overlay",
+      ghost: "text-primary hover:bg-primary/12",
     };
 
     const sizes = {

@@ -37,7 +37,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#1D4ED8",
+  themeColor: "#07080d",
 };
 
 export default function RootLayout({
@@ -51,7 +51,7 @@ export default function RootLayout({
         <AuthProvider>
           <QueryProvider>
             <PullToRefresh>
-              <main className="pb-20 max-w-lg mx-auto">
+              <main className="pb-20 max-w-lg mx-auto min-h-dvh">
                 {children}
                 {/* <Footer /> */}
               </main>

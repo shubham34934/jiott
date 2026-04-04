@@ -21,7 +21,7 @@ export function PlayerCard({
 
   return (
     <Link href={`/players/${id}`} className="block">
-      <div className="bg-surface rounded-xl border border-border p-4 flex items-center justify-between">
+      <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03] transition-colors hover:border-border-strong">
         <div>
           <p className="font-semibold text-sm text-text-primary">{name}</p>
           <div className="flex items-center gap-3 mt-1">

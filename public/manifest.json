@@ -4,8 +4,8 @@
   "description": "Track table tennis matches, players, ratings, and tournaments",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F9FAFB",
-  "theme_color": "#1D4ED8",
+  "background_color": "#07080d",
+  "theme_color": "#5e9eff",
   "orientation": "portrait",
   "icons": [
     {

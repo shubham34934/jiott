@@ -124,7 +124,7 @@ export default function TournamentPage({
             <ArrowLeft size={22} className="text-text-primary" />
           </Link>
           <div>
-            <h1 className="text-lg font-bold">{tournament.name}</h1>
+            <h1 className="text-lg font-bold text-text-primary">{tournament.name}</h1>
             <p className="text-xs text-neutral">
               {tournament.type === "ROUND_ROBIN" ? "Round robin" : "Knockout"}{" "}
               &middot; {tournament.matchType} &middot; {tournament.teams.length}{" "}
@@ -148,7 +148,7 @@ export default function TournamentPage({
                   <p className="text-base font-bold text-text-primary flex items-center gap-2 flex-wrap">
                     <Trophy
                       size={20}
-                      className="text-amber-600 shrink-0"
+                      className="text-warning shrink-0"
                       aria-hidden
                     />
                     <span className="font-bold">
@@ -240,7 +240,7 @@ export default function TournamentPage({
                       stopPropagation={!!m.match}
                       className={
                         m.winnerId === m.teamAId
-                          ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                          ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-success/55 hover:decoration-success"
                           : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
                       }
                     />
@@ -253,7 +253,7 @@ export default function TournamentPage({
                       stopPropagation={!!m.match}
                       className={
                         m.winnerId === m.teamBId
-                          ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                          ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-success/55 hover:decoration-success"
                           : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
                       }
                     />
@@ -300,7 +300,7 @@ export default function TournamentPage({
             fullWidth
             variant="secondary"
             size="lg"
-            className="border-red-200 text-red-700 hover:bg-red-50"
+            className="border-danger/45 text-danger hover:bg-danger/12"
             onClick={() => setDeleteTournamentOpen(true)}
             disabled={deleteTournament.isPending}
           >
@@ -339,7 +339,7 @@ function BracketMatchCard({
 
   const className = `rounded-xl border p-3 text-sm ${
     isLocked
-      ? "bg-gray-50 border-border opacity-50"
+      ? "bg-surface-raised border-border opacity-50"
       : isPlayable
         ? "bg-surface border-primary shadow-sm"
         : isCompleted
@@ -362,7 +362,7 @@ function BracketMatchCard({
             stopPropagation={!!match.match}
             className={
               match.winnerId === match.teamAId
-                ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-success/55 hover:decoration-success"
                 : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
             }
           />
@@ -382,7 +382,7 @@ function BracketMatchCard({
             stopPropagation={!!match.match}
             className={
               match.winnerId === match.teamBId
-                ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                ? "font-bold text-success underline underline-offset-[3px] decoration-1 decoration-success/55 hover:decoration-success"
                 : "text-text-primary underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
             }
           />

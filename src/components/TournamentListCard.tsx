@@ -27,7 +27,7 @@ export function TournamentListCard({
 }: TournamentListCardProps) {
   return (
     <Link href={href} className="block w-full">
-      <div className="bg-surface rounded-xl border border-border p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03] transition-transform active:scale-[0.99] hover:border-border-strong">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p className="font-semibold text-sm text-text-primary truncate">

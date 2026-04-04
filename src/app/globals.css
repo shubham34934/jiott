@@ -1,40 +1,94 @@
 @import "tailwindcss";
 
+/* ─── JioTT dark design system (semantic tokens → Tailwind utilities) ─── */
 @theme inline {
-  --color-primary: #1D4ED8;
-  --color-primary-light: #3B82F6;
-  --color-secondary: #6366F1;
-  --color-background: #F9FAFB;
-  --color-surface: #FFFFFF;
-  --color-success: #16A34A;
-  --color-danger: #DC2626;
-  --color-neutral: #6B7280;
-  --color-neutral-light: #9CA3AF;
-  --color-border: #E5E7EB;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
+  /* Canvas & elevation */
+  --color-background: #07080d;
+  --color-surface: #11131a;
+  --color-surface-raised: #181b24;
+  --color-surface-overlay: #1e222e;
+
+  /* Lines */
+  --color-border: #242830;
+  --color-border-strong: #343842;
+
+  /* Typography */
+  --color-text-primary: #f4f4f7;
+  --color-neutral: #9494a8;
+  --color-neutral-light: #6c6c80;
+
+  /* Brand */
+  --color-primary: #5e9eff;
+  --color-primary-light: #8bb8ff;
+  --color-secondary: #a78bfa;
+
+  /* Semantic */
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+
+  /* Podium / highlights */
+  --color-gold: #f5d547;
+  --color-silver: #b4b4c0;
+  --color-bronze: #e0935a;
+
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --shadow-glow: 0 0 80px rgba(94, 158, 255, 0.06);
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--color-background);
+  min-height: 100dvh;
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(ellipse 100% 60% at 50% -15%, rgba(94, 158, 255, 0.11), transparent 52%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(167, 139, 250, 0.07), transparent 45%);
+  box-shadow: var(--shadow-glow);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Mobile: reduce native overscroll so custom pull-to-refresh can own the gesture */
+::selection {
+  background: rgba(94, 158, 255, 0.35);
+  color: var(--color-text-primary);
+}
+
 @media (max-width: 768px) {
   html {
     overscroll-behavior-y: contain;
   }
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   font-size: 16px;
+  color: var(--color-text-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-neutral-light);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text-primary);
+  caret-color: var(--color-text-primary);
+  box-shadow: 0 0 0 32px var(--color-surface) inset;
+  transition: background-color 9999s ease-out;
 }

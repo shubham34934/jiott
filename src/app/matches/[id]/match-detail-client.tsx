@@ -81,7 +81,9 @@ function MatchBackLink({
 }
 
 function participantNameRow(team: Participant[], won: boolean) {
-  const cls = won ? "font-semibold text-sm text-success" : "font-semibold text-sm";
+  const cls = won
+    ? "font-semibold text-sm text-success"
+    : "font-semibold text-sm text-text-primary";
   return (
     <p className={cls}>
       {team.map((p, i) => (
@@ -91,7 +93,7 @@ function participantNameRow(team: Participant[], won: boolean) {
             playerId={p.player.id}
             className={
               won
-                ? "text-inherit underline underline-offset-[3px] decoration-1 decoration-green-600/60 hover:decoration-green-700"
+                ? "text-inherit underline underline-offset-[3px] decoration-1 decoration-success/55 hover:decoration-success"
                 : "text-inherit underline underline-offset-[3px] decoration-1 decoration-primary/45 hover:decoration-primary"
             }
           >
@@ -331,13 +333,13 @@ export function MatchDetailPageClient({
         <div className="flex items-center gap-3">
           <MatchBackLink fallbackHref="/matches" returnTo={returnTo} />
           <div>
-            <h1 className="text-lg font-bold">Match Details</h1>
+            <h1 className="text-lg font-bold text-text-primary">Match Details</h1>
             <p className="text-xs text-neutral">{date}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {match.isFriendly && (
-            <span className="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-2.5 py-1">
+            <span className="inline-flex items-center text-xs font-medium text-primary bg-primary/15 rounded-full px-2.5 py-1">
               Friendly
             </span>
           )}
@@ -349,9 +351,9 @@ export function MatchDetailPageClient({
         {match.tournamentContext && (
           <Link
             href={`/tournaments/${match.tournamentContext.id}`}
-            className="flex items-stretch gap-3 bg-surface rounded-xl border border-border p-4 mb-6 active:scale-[0.99] transition-transform shadow-sm"
+            className="flex items-stretch gap-3 bg-surface rounded-xl border border-border p-4 mb-6 active:scale-[0.99] transition-transform shadow-sm ring-1 ring-white/[0.03]"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning">
               <Medal size={22} strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
@@ -384,7 +386,7 @@ export function MatchDetailPageClient({
         <div className="bg-surface rounded-xl border-2 border-border p-4 mb-6">
           <div
             className={`rounded-lg p-3 mb-2 ${
-              teamAWon ? "border-2 border-success bg-green-50" : ""
+              teamAWon ? "border-2 border-success bg-success/12" : ""
             }`}
           >
             <div className="flex items-center justify-between">
@@ -398,14 +400,14 @@ export function MatchDetailPageClient({
                   )}
                 </p>
               </div>
-              <span className="text-3xl font-bold tabular-nums">
+              <span className="text-3xl font-bold tabular-nums text-text-primary">
                 {teamASetsWon}
               </span>
             </div>
           </div>
           <div
             className={`rounded-lg p-3 ${
-              teamBWon ? "border-2 border-success bg-green-50" : ""
+              teamBWon ? "border-2 border-success bg-success/12" : ""
             }`}
           >
             <div className="flex items-center justify-between">
@@ -419,7 +421,7 @@ export function MatchDetailPageClient({
                   )}
                 </p>
               </div>
-              <span className="text-3xl font-bold tabular-nums">
+              <span className="text-3xl font-bold tabular-nums text-text-primary">
                 {teamBSetsWon}
               </span>
             </div>
@@ -436,7 +438,7 @@ export function MatchDetailPageClient({
           </p>
         )}
 
-        <h2 className="text-lg font-bold mb-3">Sets</h2>
+        <h2 className="text-lg font-bold mb-3 text-text-primary">Sets</h2>
         <div className="space-y-3 mb-6">
           {match.sets.map((set) => (
             <SetScoreRow
@@ -474,7 +476,7 @@ export function MatchDetailPageClient({
             fullWidth
             variant="secondary"
             size="lg"
-            className="mb-6 border-red-200 text-red-700 hover:bg-red-50"
+            className="mb-6 border-danger/45 text-danger hover:bg-danger/12"
             onClick={() => setDeleteMatchOpen(true)}
             disabled={deleteMatch.isPending}
           >
@@ -494,7 +496,7 @@ export function MatchDetailPageClient({
           onConfirm={() => deleteMatch.mutate()}
         />
 
-        <h2 className="text-lg font-bold mb-3">Event History</h2>
+        <h2 className="text-lg font-bold mb-3 text-text-primary">Event History</h2>
         <div className="space-y-0 mb-8">
           {match.eventLogs.map((log) => {
             const time = formatDisplayDate(log.createdAt);
@@ -515,7 +517,7 @@ export function MatchDetailPageClient({
                 className="flex gap-3 py-3 border-l-2 border-primary pl-4 ml-2"
               >
                 <div>
-                  <p className="text-sm font-medium">{description}</p>
+                  <p className="text-sm font-medium text-text-primary">{description}</p>
                   <p className="text-xs text-neutral">
                     {time}
                     {log.updatedByUser?.name != null &&

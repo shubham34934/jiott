@@ -64,9 +64,9 @@ export default function RegisterPage() {
     const p = form.password;
     if (!p) return null;
     if (p.length < 6) return { label: "Too short", color: "bg-danger", width: "w-1/4" };
-    if (p.length < 8) return { label: "Weak", color: "bg-orange-400", width: "w-2/4" };
+    if (p.length < 8) return { label: "Weak", color: "bg-warning", width: "w-2/4" };
     if (p.match(/[A-Z]/) && p.match(/[0-9]/)) return { label: "Strong", color: "bg-success", width: "w-full" };
-    return { label: "Fair", color: "bg-yellow-400", width: "w-3/4" };
+    return { label: "Fair", color: "bg-primary-light", width: "w-3/4" };
   };
 
   const strength = passwordStrength();
@@ -190,7 +190,7 @@ export default function RegisterPage() {
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-danger">
+            <div className="rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}

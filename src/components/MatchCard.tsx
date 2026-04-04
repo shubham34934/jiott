@@ -40,7 +40,7 @@ function teamNameLinks(
   stopPropagation: boolean
 ) {
   const nameClass = `text-sm hover:underline ${
-    winClass ? "font-bold text-green-500" : "font-medium text-text-primary"
+    winClass ? "font-bold text-success" : "font-medium text-text-primary"
   }`;
   /* One wrapper so the parent row’s flex gap does not sit between players */
   return (
@@ -98,7 +98,7 @@ export function MatchCard({
 
   return (
     <div
-      className="bg-surface rounded-xl border border-border p-4 cursor-pointer hover:border-primary/25 transition-colors"
+      className="bg-surface rounded-xl border border-border p-4 cursor-pointer shadow-sm transition-all hover:border-primary/35 hover:shadow-[0_0_0_1px_rgba(94,158,255,0.12)]"
       onClick={goToMatch}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -123,7 +123,7 @@ export function MatchCard({
             </span>
           )}
           {isFriendly && (
-            <span className="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-2.5 py-1">
+            <span className="inline-flex items-center text-xs font-medium text-primary bg-primary/15 rounded-full px-2.5 py-1">
               Friendly
             </span>
           )}
@@ -133,7 +133,7 @@ export function MatchCard({
 
       {isTournamentMatch && tournamentName && (
         <div className="mb-3">
-          <span className="inline-flex max-w-full items-center text-xs font-medium text-amber-800 bg-amber-50 rounded-full px-2.5 py-1 truncate">
+          <span className="inline-flex max-w-full items-center text-xs font-medium text-warning bg-warning/15 rounded-full px-2.5 py-1 truncate">
             Tournament:{" "}
             <b className="font-bold">{tournamentName}</b>
           </span>
@@ -145,12 +145,12 @@ export function MatchCard({
           <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
             {teamNameLinks(teamA, teamAWon, true)}
             {teamAWon && (
-              <Trophy size={14} className="text-black shrink-0" />
+              <Trophy size={14} className="text-warning shrink-0" />
             )}
           </div>
           <span
             className={`text-lg font-bold tabular-nums shrink-0 ${
-              teamAWon ? "text-green-500" : "text-neutral"
+              teamAWon ? "text-success" : "text-neutral"
             }`}
           >
             {teamASetsWon}
@@ -160,12 +160,12 @@ export function MatchCard({
           <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
             {teamNameLinks(teamB, teamBWon, true)}
             {teamBWon && (
-              <Trophy size={14} className="text-black shrink-0" />
+              <Trophy size={14} className="text-warning shrink-0" />
             )}
           </div>
           <span
             className={`text-lg font-bold tabular-nums shrink-0 ${
-              teamBWon ? "text-green-500" : "text-neutral"
+              teamBWon ? "text-success" : "text-neutral"
             }`}
           >
             {teamBSetsWon}

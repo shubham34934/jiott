@@ -3,7 +3,7 @@ import { formatDisplayDate } from "@/lib/formatDisplayDate";
 export default function PrivacyPage() {
   return (
     <div className="px-4 pt-8 pb-16 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold mb-2">Privacy Policy</h1>
+      <h1 className="text-2xl font-bold mb-2 text-text-primary">Privacy Policy</h1>
       <p className="text-xs text-neutral mb-6">
         Last updated: {formatDisplayDate(new Date(2026, 2, 27))}
       </p>

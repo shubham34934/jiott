@@ -172,14 +172,14 @@ function VerifyForm() {
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-danger mb-4 text-center">
+          <div className="mb-4 rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-center text-sm text-danger">
             {error}
           </div>
         )}
 
         {/* Success resend msg */}
         {resendMsg && (
-          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-success mb-4 text-center flex items-center justify-center gap-2">
+          <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-success/35 bg-success/10 px-4 py-3 text-center text-sm text-success">
             <CheckCircle2 size={16} />
             {resendMsg}
           </div>

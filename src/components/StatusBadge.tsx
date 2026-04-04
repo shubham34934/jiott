@@ -8,13 +8,13 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   switch (status) {
     case "CREATED":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-gray-100 rounded-full px-2.5 py-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-surface-raised rounded-full px-2.5 py-1 ring-1 ring-border">
           Draft
         </span>
       );
     case "IN_PROGRESS":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-blue-50 rounded-full px-2.5 py-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/15 rounded-full px-2.5 py-1">
           In progress
         </span>
       );
@@ -34,20 +34,20 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       );
     case "READY":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-blue-50 rounded-full px-2.5 py-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/15 rounded-full px-2.5 py-1">
           Ready
         </span>
       );
     case "LOCKED":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-gray-100 rounded-full px-2.5 py-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-surface-raised rounded-full px-2.5 py-1 ring-1 ring-border">
           <Lock size={14} />
           Locked
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-gray-100 rounded-full px-2.5 py-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-surface-raised rounded-full px-2.5 py-1 ring-1 ring-border">
           {status}
         </span>
       );

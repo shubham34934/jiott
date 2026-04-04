@@ -5,10 +5,11 @@ import { getLeaderboardPlayersCached } from "@/lib/get-leaderboard";
 export const dynamic = "force-dynamic";
 
 const podiumIcons = ["🥇", "🥈", "🥉"];
-const podiumBorderColors = [
-  "border-yellow-400",
-  "border-gray-300",
-  "border-amber-600",
+const podiumBorderColors = ["border-gold", "border-silver", "border-bronze"];
+const podiumSurfaceClasses = [
+  "bg-gold/12 ring-1 ring-gold/25",
+  "bg-silver/10 ring-1 ring-silver/20",
+  "bg-bronze/12 ring-1 ring-bronze/25",
 ];
 
 export default async function LeaderboardPage() {
@@ -32,10 +33,10 @@ export default async function LeaderboardPage() {
             return (
               <Link key={p.id} href={`/players/${p.id}`}>
                 <div
-                  className={`bg-yellow-50/50 rounded-xl border-2 ${podiumBorderColors[i]} p-3 text-center`}
+                  className={`rounded-xl border-2 p-3 text-center transition-transform hover:scale-[1.02] ${podiumSurfaceClasses[i]} ${podiumBorderColors[i]}`}
                 >
                   <span className="text-2xl">{podiumIcons[i]}</span>
-                  <p className="font-semibold text-sm mt-2 truncate">
+                  <p className="font-semibold text-sm mt-2 truncate text-text-primary">
                     {p.user.name}
                   </p>
                   <p className="text-lg font-bold text-primary mt-1">
@@ -62,12 +63,12 @@ export default async function LeaderboardPage() {
               href={`/players/${p.id}`}
               className="block w-full"
             >
-              <div className="bg-surface rounded-xl border border-border p-4 flex items-center gap-4">
-                <span className="text-lg font-bold text-neutral w-8 text-center tabular-nums">
+              <div className="bg-surface rounded-xl border border-border p-4 flex items-center gap-4 shadow-sm ring-1 ring-white/[0.03]">
+                <span className="text-lg font-bold text-neutral-light w-8 text-center tabular-nums">
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">
+                  <p className="font-semibold text-sm truncate text-text-primary">
                     {p.user.name}
                   </p>
                   <p className="text-xs text-neutral">

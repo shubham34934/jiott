@@ -58,7 +58,7 @@ export function ConfirmDialog({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
         aria-label="Dismiss"
         disabled={isPending}
         onClick={() => !isPending && onClose()}
@@ -68,7 +68,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
-        className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-xl"
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-border-strong bg-surface-raised p-5 shadow-2xl shadow-black/40 ring-1 ring-white/[0.04]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-lg font-bold text-text-primary">
@@ -94,7 +94,7 @@ export function ConfirmDialog({
             fullWidth
             className={
               confirmIsDanger
-                ? "sm:w-auto sm:min-w-[100px] border-red-200 text-red-700 hover:bg-red-50"
+                ? "sm:w-auto sm:min-w-[100px] border-danger/45 text-danger hover:bg-danger/12"
                 : "sm:w-auto sm:min-w-[100px]"
             }
             disabled={isPending}

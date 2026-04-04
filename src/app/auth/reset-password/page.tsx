@@ -218,7 +218,7 @@ function ResetForm() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-danger">
+            <div className="rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}

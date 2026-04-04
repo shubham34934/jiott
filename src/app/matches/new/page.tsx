@@ -85,7 +85,7 @@ export default function NewMatchPage() {
           <ArrowLeft size={22} className="text-text-primary" />
         </Link>
         <div>
-          <h1 className="text-lg font-bold">New Match</h1>
+          <h1 className="text-lg font-bold text-text-primary">New Match</h1>
           <p className="text-xs text-neutral">Step {step} of 4</p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function NewMatchPage() {
       <div className="px-4 pt-6">
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Choose match type</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Choose match type</h2>
             <p className="text-sm text-neutral mb-6">
               Select the type of match
             </p>
@@ -113,7 +113,7 @@ export default function NewMatchPage() {
                 }}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
                   matchType === "SINGLES"
-                    ? "border-primary bg-blue-50"
+                    ? "border-primary bg-primary/12"
                     : "border-border bg-surface"
                 }`}
               >
@@ -128,7 +128,7 @@ export default function NewMatchPage() {
                 }}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
                   matchType === "DOUBLES"
-                    ? "border-primary bg-blue-50"
+                    ? "border-primary bg-primary/12"
                     : "border-border bg-surface"
                 }`}
               >
@@ -141,7 +141,7 @@ export default function NewMatchPage() {
 
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Select players</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Select players</h2>
             <p className="text-sm text-neutral mb-6">
               Search and pick {requiredPlayers} players
             </p>
@@ -223,7 +223,7 @@ export default function NewMatchPage() {
 
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Match settings</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Match settings</h2>
             <p className="text-sm text-neutral mb-6">
               Configure the match rules
             </p>
@@ -240,7 +240,7 @@ export default function NewMatchPage() {
                       onClick={() => setTotalSets(n)}
                       className={`flex-1 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
                         totalSets === n
-                          ? "border-primary bg-blue-50 text-primary"
+                          ? "border-primary bg-primary/12 text-primary"
                           : "border-border bg-surface text-text-primary"
                       }`}
                     >
@@ -261,7 +261,7 @@ export default function NewMatchPage() {
                       onClick={() => setPointsPerSet(n)}
                       className={`flex-1 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
                         pointsPerSet === n
-                          ? "border-primary bg-blue-50 text-primary"
+                          ? "border-primary bg-primary/12 text-primary"
                           : "border-border bg-surface text-text-primary"
                       }`}
                     >
@@ -276,7 +276,7 @@ export default function NewMatchPage() {
                   onClick={() => setIsFriendly(!isFriendly)}
                   className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
                     isFriendly
-                      ? "border-primary bg-blue-50"
+                      ? "border-primary bg-primary/12"
                       : "border-border bg-surface"
                   }`}
                 >
@@ -287,7 +287,7 @@ export default function NewMatchPage() {
                   <div className={`w-11 h-6 rounded-full transition-all relative ${
                     isFriendly ? "bg-primary" : "bg-border"
                   }`}>
-                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
+                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-text-primary shadow-md transition-all ${
                       isFriendly ? "left-[22px]" : "left-0.5"
                     }`} />
                   </div>
@@ -308,7 +308,7 @@ export default function NewMatchPage() {
 
         {step === 4 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Confirm match</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Confirm match</h2>
             <p className="text-sm text-neutral mb-6">
               Review and start the match
             </p>
@@ -430,7 +430,7 @@ function PlayerSearchInput({
 
   if (selected) {
     return (
-      <div className="flex items-center justify-between p-3 rounded-xl border-2 border-primary bg-blue-50">
+      <div className="flex items-center justify-between p-3 rounded-xl border-2 border-primary bg-primary/12 ring-1 ring-primary/20">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
             {selected.user.name?.[0]?.toUpperCase()}
@@ -442,7 +442,7 @@ function PlayerSearchInput({
         </div>
         <button
           onClick={onClear}
-          className="p-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-primary/15 transition-colors"
         >
           <X size={16} className="text-neutral" />
         </button>

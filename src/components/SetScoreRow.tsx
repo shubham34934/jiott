@@ -116,7 +116,7 @@ export function SetScoreRow({
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-neutral font-medium">Set {setNumber}</span>
         {winnerLabel && !hasChanged && (
-          <span className="text-xs font-medium text-success bg-green-50 rounded-full px-2 py-0.5">
+          <span className="text-xs font-medium text-success bg-success/15 rounded-full px-2 py-0.5 ring-1 ring-success/25">
             {winnerLabel}
           </span>
         )}
@@ -178,7 +178,7 @@ export function SetScoreRow({
           <div className="flex-1 text-center">
             <p className="text-[10px] text-neutral mb-1 truncate">{teamAName || "Team A"}</p>
             <span className={`text-3xl font-bold tabular-nums ${
-              savedWinner === "A" ? "text-success" : ""
+              savedWinner === "A" ? "text-success" : "text-text-primary"
             }`}>
               {isSaved ? teamAScore : "-"}
             </span>
@@ -189,7 +189,7 @@ export function SetScoreRow({
           <div className="flex-1 text-center">
             <p className="text-[10px] text-neutral mb-1 truncate">{teamBName || "Team B"}</p>
             <span className={`text-3xl font-bold tabular-nums ${
-              savedWinner === "B" ? "text-success" : ""
+              savedWinner === "B" ? "text-success" : "text-text-primary"
             }`}>
               {isSaved ? teamBScore : "-"}
             </span>

@@ -137,7 +137,7 @@ export default function NewTournamentPage() {
           <ArrowLeft size={22} className="text-text-primary" />
         </Link>
         <div>
-          <h1 className="text-lg font-bold">New Tournament</h1>
+          <h1 className="text-lg font-bold text-text-primary">New Tournament</h1>
           <p className="text-xs text-neutral">Step {step} of 4</p>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function NewTournamentPage() {
       <div className="px-4 pt-6">
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Tournament details</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Tournament details</h2>
             <p className="text-sm text-neutral mb-6">
               Give your tournament a name
             </p>
@@ -176,7 +176,7 @@ export default function NewTournamentPage() {
 
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Match type</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Match type</h2>
             <p className="text-sm text-neutral mb-6">
               Singles or doubles tournament?
             </p>
@@ -188,7 +188,7 @@ export default function NewTournamentPage() {
                 }}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
                   matchType === "SINGLES"
-                    ? "border-primary bg-blue-50"
+                    ? "border-primary bg-primary/12"
                     : "border-border bg-surface"
                 }`}
               >
@@ -202,7 +202,7 @@ export default function NewTournamentPage() {
                 }}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
                   matchType === "DOUBLES"
-                    ? "border-primary bg-blue-50"
+                    ? "border-primary bg-primary/12"
                     : "border-border bg-surface"
                 }`}
               >
@@ -217,7 +217,7 @@ export default function NewTournamentPage() {
                 onClick={() => setTournamentType("SINGLE_ELIMINATION")}
                 className={`flex flex-col items-start gap-1 p-4 rounded-xl border-2 transition-all text-left ${
                   tournamentType === "SINGLE_ELIMINATION"
-                    ? "border-primary bg-blue-50"
+                    ? "border-primary bg-primary/12"
                     : "border-border bg-surface"
                 }`}
               >
@@ -231,7 +231,7 @@ export default function NewTournamentPage() {
                 onClick={() => setTournamentType("ROUND_ROBIN")}
                 className={`flex flex-col items-start gap-1 p-4 rounded-xl border-2 transition-all text-left ${
                   tournamentType === "ROUND_ROBIN"
-                    ? "border-primary bg-blue-50"
+                    ? "border-primary bg-primary/12"
                     : "border-border bg-surface"
                 }`}
               >
@@ -254,7 +254,7 @@ export default function NewTournamentPage() {
 
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Add teams</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Add teams</h2>
             <p className="text-sm text-neutral mb-4">
               {teams.length} team{teams.length !== 1 ? "s" : ""} added
               (min 2)
@@ -293,7 +293,7 @@ export default function NewTournamentPage() {
                       onClick={() => togglePlayer(p.id)}
                       className={`w-full flex items-center justify-between p-2.5 rounded-lg border transition-all text-sm ${
                         selected
-                          ? "border-primary bg-blue-50"
+                          ? "border-primary bg-primary/12"
                           : "border-border bg-surface"
                       }`}
                     >
@@ -335,11 +335,11 @@ export default function NewTournamentPage() {
 
         {step === 4 && (
           <div>
-            <h2 className="text-xl font-bold mb-2">Confirm tournament</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">Confirm tournament</h2>
             <p className="text-sm text-neutral mb-6">Review and generate bracket</p>
 
             {createTournament.isError && (
-              <p className="text-sm text-red-600 mb-4">
+              <p className="text-sm text-danger mb-4">
                 {createTournament.error instanceof Error
                   ? createTournament.error.message
                   : "Something went wrong"}

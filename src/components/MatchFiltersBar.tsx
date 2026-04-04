@@ -60,7 +60,7 @@ export function MatchFiltersBar({
         aria-expanded={expanded}
         aria-controls="match-filters-panel"
         onClick={() => onExpandedChange(!expanded)}
-        className="w-full flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left transition-colors hover:bg-background/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/20"
+        className="w-full flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left shadow-sm ring-1 ring-white/[0.03] transition-colors hover:bg-surface-raised/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
       >
         <Filter className="h-5 w-5 shrink-0 text-neutral" aria-hidden />
         <div className="min-w-0 flex-1">
@@ -84,7 +84,7 @@ export function MatchFiltersBar({
           id="match-filters-panel"
           role="region"
           aria-label="Match filters"
-          className="mt-3 space-y-4 rounded-xl border border-border bg-surface/50 p-4"
+          className="mt-3 space-y-4 rounded-xl border border-border bg-surface-raised/90 p-4 ring-1 ring-white/[0.03]"
         >
           <section aria-labelledby="filter-heading-source">
             <p
@@ -93,7 +93,7 @@ export function MatchFiltersBar({
             >
               Source
             </p>
-            <div className="flex rounded-xl bg-background border border-border p-1">
+            <div className="flex rounded-xl border border-border bg-background p-1">
               {SOURCE_TABS.map((tab) => (
                 <button
                   key={tab.key}
@@ -102,7 +102,7 @@ export function MatchFiltersBar({
                   onClick={() => onSourceChange(tab.key)}
                   className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${
                     source === tab.key
-                      ? "bg-surface text-text-primary shadow-sm"
+                      ? "bg-surface-raised text-text-primary shadow-sm ring-1 ring-white/[0.06]"
                       : "text-neutral"
                   }`}
                 >
@@ -119,7 +119,7 @@ export function MatchFiltersBar({
             >
               Status
             </p>
-            <div className="flex rounded-xl bg-background border border-border p-1">
+            <div className="flex rounded-xl border border-border bg-background p-1">
               {FILTER_TABS.map((tab) => (
                 <button
                   key={tab.key}
@@ -127,7 +127,7 @@ export function MatchFiltersBar({
                   onClick={() => onFilterChange(tab.key)}
                   className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                     filter === tab.key
-                      ? "bg-surface text-text-primary shadow-sm"
+                      ? "bg-surface-raised text-text-primary shadow-sm ring-1 ring-white/[0.06]"
                       : "text-neutral"
                   }`}
                 >

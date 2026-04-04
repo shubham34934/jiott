@@ -102,10 +102,10 @@ export default function PlayerProfilePage({
         <Link href="/players" className="p-1">
           <ArrowLeft size={22} className="text-text-primary" />
         </Link>
-        <h1 className="text-lg font-bold">Player Profile</h1>
+        <h1 className="text-lg font-bold text-text-primary">Player Profile</h1>
       </div>
 
-      <div className="bg-gradient-to-br from-secondary to-primary rounded-2xl mx-4 mt-4 p-6 text-white">
+      <div className="mx-4 mt-4 rounded-2xl bg-gradient-to-br from-secondary to-primary p-6 text-white shadow-[0_12px_40px_-12px_rgba(94,158,255,0.45)] ring-1 ring-white/15">
         <div className="flex items-center gap-4 mb-2">
           <Avatar
             name={player.user.name || ""}
@@ -122,30 +122,30 @@ export default function PlayerProfilePage({
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-4 mt-4">
-        <div className="bg-surface rounded-xl border border-border p-4">
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
           <Trophy size={20} className="text-primary mb-2" />
-          <p className="text-2xl font-bold">{player.rating}</p>
+          <p className="text-2xl font-bold text-text-primary">{player.rating}</p>
           <p className="text-xs text-neutral">Rating</p>
         </div>
-        <div className="bg-surface rounded-xl border border-border p-4">
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
           <Target size={20} className="text-success mb-2" />
-          <p className="text-2xl font-bold">{player.matchesWon}</p>
+          <p className="text-2xl font-bold text-text-primary">{player.matchesWon}</p>
           <p className="text-xs text-neutral">Total Wins</p>
         </div>
-        <div className="bg-surface rounded-xl border border-border p-4">
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
           <TrendingUp size={20} className="text-secondary mb-2" />
-          <p className="text-2xl font-bold">{player.matchesPlayed}</p>
+          <p className="text-2xl font-bold text-text-primary">{player.matchesPlayed}</p>
           <p className="text-xs text-neutral">Matches</p>
         </div>
-        <div className="bg-surface rounded-xl border border-border p-4">
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
           <TrendingUp size={20} className="text-secondary mb-2" />
-          <p className="text-2xl font-bold">{winRate}%</p>
+          <p className="text-2xl font-bold text-text-primary">{winRate}%</p>
           <p className="text-xs text-neutral">Win Rate</p>
         </div>
       </div>
 
-      <div className="bg-surface rounded-xl border border-border mx-4 mt-4 p-4">
-        <h3 className="font-semibold text-base mb-3">Performance Summary</h3>
+      <div className="mx-4 mt-4 rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03]">
+        <h3 className="mb-3 text-base font-semibold text-text-primary">Performance Summary</h3>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-neutral">Wins</span>
@@ -169,7 +169,7 @@ export default function PlayerProfilePage({
       </div>
 
       <div className="px-4 mt-6">
-        <h3 className="font-bold text-base mb-3">Tournaments</h3>
+        <h3 className="mb-3 text-base font-bold text-text-primary">Tournaments</h3>
         <div className="flex flex-col gap-3 mb-2">
           {tournamentRows.length === 0 && (
             <p className="text-sm text-neutral text-center py-4">
@@ -199,7 +199,7 @@ export default function PlayerProfilePage({
       </div>
 
       <div className="px-4 mt-6 mb-4">
-        <h3 className="font-bold text-base mb-3">Match History</h3>
+        <h3 className="mb-3 text-base font-bold text-text-primary">Match History</h3>
         <MatchFiltersBar
           filter={matchFilter}
           source={matchSource}
