@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -26,12 +27,37 @@ export default function HomePage() {
   return (
     <div className="px-4 pt-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">
-          {firstName ? `Hello, ${firstName}! 👋` : "JioTT 🏓"}
-        </h1>
-        <p className="text-sm text-neutral mt-1">
-          {firstName ? "Ready to play?" : "Table Tennis Tracker"}
-        </p>
+        {firstName ? (
+          <div className="flex items-center gap-3">
+            <Image
+              src="/jiott-logo.png"
+              alt=""
+              width={48}
+              height={48}
+              className="h-11 w-11 shrink-0 object-contain"
+              priority
+            />
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-text-primary leading-tight">
+                Hello, {firstName}! 👋
+              </h1>
+              <p className="text-sm text-neutral mt-1">Ready to play?</p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Image
+              src="/jiott-logo.png"
+              alt="JioTT"
+              width={280}
+              height={96}
+              className="h-16 w-auto max-w-full object-contain object-left mb-2"
+              priority
+            />
+            <h1 className="sr-only">JioTT — Table Tennis Tracker</h1>
+            <p className="text-sm text-neutral">Table Tennis Tracker</p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 mb-8">
