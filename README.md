@@ -7,8 +7,8 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
-- **Database**: MongoDB with Prisma ORM v6
-- **Auth**: NextAuth.js (Google provider)
+- **Database**: PostgreSQL (Neon) with Prisma ORM v6
+- **Auth**: NextAuth.js (credentials + Prisma adapter)
 - **Data Fetching**: TanStack React Query
 - **Icons**: Lucide React
 
@@ -27,7 +27,7 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
 ### Prerequisites
 
 - Node.js 20+
-- MongoDB database (MongoDB Atlas free tier recommended)
+- A PostgreSQL database ([Neon](https://neon.tech) free tier works well)
 
 ### Setup
 
@@ -37,31 +37,28 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
    ```
 
 2. **Configure environment variables**:
-   Copy `.env` and update with your credentials:
-   ```
-   DATABASE_URL="mongodb+srv://user:password@cluster0.xxxxx.mongodb.net/jiott?retryWrites=true&w=majority"
-   NEXTAUTH_SECRET="your-random-secret"
-   NEXTAUTH_URL="http://localhost:3000"
-   GOOGLE_CLIENT_ID="your-google-client-id"
-   GOOGLE_CLIENT_SECRET="your-google-client-secret"
-   ```
+   Copy `.env.example` to `.env` and set `DATABASE_URL` (Neon connection string with `?sslmode=require`), `NEXTAUTH_SECRET`, and `NEXTAUTH_URL`.
 
-3. **Push schema to database** (MongoDB uses `db push` instead of migrations):
+3. **Apply database migrations**:
    ```bash
-   npx prisma db push
+   npx prisma migrate deploy
    ```
+   For local development you can use `npx prisma migrate dev` to create new migrations after schema changes.
 
-4. **Seed demo data** (optional):
-   ```bash
-   npx tsx prisma/seed.ts
-   ```
-
-5. **Run development server**:
+4. **Run development server**:
    ```bash
    npm run dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000)
+5. Open [http://localhost:3000](http://localhost:3000)
+
+### Neon connection issues (`P1001` / can’t reach server)
+
+- Use the **direct** connection URI from the Neon dashboard (host like `ep-…aws.neon.tech`, not always required to use the pooler for local dev).
+- Do **not** add `channel_binding=require` to the URL; it often breaks Prisma/Node TLS.
+- If the project was **idle**, open it in the [Neon console](https://console.neon.tech) to wake it, then retry.
+- Some networks block outbound **port 5432** or mishandle **IPv6**; try another Wi‑Fi, disable VPN, or check Neon’s IPv4 / pooler options in the docs.
+- After changing `.env`, restart `npm run dev`.
 
 ## Project Structure
 
