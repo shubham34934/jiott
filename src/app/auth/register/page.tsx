@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/Button";
+import { JioTTAuthMark } from "@/components/JioTTLogo";
 import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
@@ -75,9 +76,7 @@ export default function RegisterPage() {
     <div className="flex flex-col items-center justify-center flex-1 px-5 py-10">
       {/* Logo */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary to-primary mb-4 text-3xl shadow-lg">
-          🏓
-        </div>
+        <JioTTAuthMark />
         <h1 className="text-2xl font-bold text-text-primary">Create account</h1>
         <p className="text-sm text-neutral mt-1">Join JioTT and start playing</p>
       </div>

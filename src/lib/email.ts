@@ -40,7 +40,12 @@ function otpEmailHtml(name: string, otp: string, type: "verify" | "reset") {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#6366F1,#1D4ED8);padding:32px;text-align:center;">
-              <div style="font-size:32px;margin-bottom:8px;">🏓</div>
+              <div style="margin-bottom:12px;line-height:0;">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;">
+                  <rect x="10" y="9" width="13" height="30" rx="6.5" fill="#ffffff" fill-opacity="0.95"/>
+                  <circle cx="33" cy="24" r="9.5" fill="#ffffff" fill-opacity="0.85"/>
+                </svg>
+              </div>
               <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">JioTT</h1>
               <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Table Tennis Tracker</p>
             </td>

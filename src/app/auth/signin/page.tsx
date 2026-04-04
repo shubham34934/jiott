@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/Button";
+import { JioTTAuthMark } from "@/components/JioTTLogo";
 
 function SignInForm() {
   const router = useRouter();
@@ -60,9 +61,7 @@ function SignInForm() {
     <div className="flex flex-col items-center justify-center flex-1 px-5 py-10">
       {/* Logo */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary to-primary mb-4 text-3xl shadow-lg">
-          🏓
-        </div>
+        <JioTTAuthMark />
         <h1 className="text-2xl font-bold text-text-primary">Welcome back</h1>
         <p className="text-sm text-neutral mt-1">Sign in to your JioTT account</p>
       </div>

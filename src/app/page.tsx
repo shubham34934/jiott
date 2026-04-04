@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Zap, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/Button";
+import { JioTTLogo } from "@/components/JioTTLogo";
 import { MatchCard } from "@/components/MatchCard";
 import { dashboardMatchesPrefetch } from "@/lib/query-prefetch";
 
@@ -29,14 +29,7 @@ export default function HomePage() {
       <div className="mb-6">
         {firstName ? (
           <div className="flex items-center gap-3">
-            <Image
-              src="/jiott-logo.png"
-              alt=""
-              width={48}
-              height={48}
-              className="h-11 w-11 shrink-0 object-contain"
-              priority
-            />
+            <JioTTLogo size={44} variant="brand" className="shrink-0" />
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-text-primary leading-tight">
                 Hello, {firstName}! 👋
@@ -45,17 +38,14 @@ export default function HomePage() {
             </div>
           </div>
         ) : (
-          <div>
-            <Image
-              src="/jiott-logo.png"
-              alt="JioTT"
-              width={280}
-              height={96}
-              className="h-16 w-auto max-w-full object-contain object-left mb-2"
-              priority
-            />
-            <h1 className="sr-only">JioTT — Table Tennis Tracker</h1>
-            <p className="text-sm text-neutral">Table Tennis Tracker</p>
+          <div className="flex items-center gap-3">
+            <JioTTLogo size={52} variant="brand" className="shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-text-primary leading-tight">
+                JioTT
+              </h1>
+              <p className="text-sm text-neutral">Table Tennis Tracker</p>
+            </div>
           </div>
         )}
       </div>
