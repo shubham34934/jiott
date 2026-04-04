@@ -46,8 +46,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="min-h-dvh bg-background">
+    <html lang="en" className={inter.className} suppressHydrationWarning>
+      <body className="min-h-dvh bg-background" suppressHydrationWarning>
         <AuthProvider>
           <QueryProvider>
             <PullToRefresh>

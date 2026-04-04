@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getApiActor } from "@/lib/sync-neon-user";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
@@ -81,8 +80,8 @@ export async function GET(
     updatedByUser: { name: nameByUserId.get(log.updatedBy) ?? null },
   }));
 
-  const session = await getServerSession(authOptions);
-  const canDelete = session?.user?.id === match.createdBy;
+  const actor = await getApiActor();
+  const canDelete = actor?.prismaUserId === match.createdBy;
 
   return NextResponse.json({
     ...match,
@@ -96,8 +95,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -112,7 +111,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
-  if (match.createdBy !== session.user.id) {
+  if (match.createdBy !== actor.prismaUserId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -132,8 +131,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -142,7 +141,7 @@ export async function PATCH(
   const { action } = body;
 
   if (action === "complete") {
-    return completeMatch(id, session.user.id);
+    return completeMatch(id, actor.prismaUserId);
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });

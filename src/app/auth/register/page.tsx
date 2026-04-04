@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/Button";
+import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,25 +34,30 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-      }),
+    const email = form.email.trim().toLowerCase();
+    const { error: signUpErr } = await authClient.signUp.email({
+      email,
+      password: form.password,
+      name: form.name.trim(),
     });
 
-    const data = await res.json();
-    setLoading(false);
-
-    if (!res.ok) {
-      setError(data.error);
+    if (signUpErr) {
+      setLoading(false);
+      setError(
+        typeof signUpErr === "object" && signUpErr !== null && "message" in signUpErr
+          ? String((signUpErr as { message: string }).message)
+          : "Could not create account."
+      );
       return;
     }
 
-    router.push(`/auth/verify?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+    await authClient.emailOtp.sendVerificationOtp({
+      email,
+      type: "email-verification",
+    });
+
+    setLoading(false);
+    router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
   };
 
   const passwordStrength = () => {

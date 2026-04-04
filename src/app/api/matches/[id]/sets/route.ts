@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getApiActor } from "@/lib/sync-neon-user";
 
 function isValidSetScore(a: number, b: number, target: number): boolean {
   if (!Number.isInteger(a) || !Number.isInteger(b)) return false;
@@ -19,8 +18,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -83,7 +82,7 @@ export async function PATCH(
       action: "SCORE_UPDATED",
       previousValue,
       newValue: { teamAScore, teamBScore, setNumber, winner },
-      updatedBy: session.user.id,
+      updatedBy: actor.prismaUserId,
       matchId,
     },
   });

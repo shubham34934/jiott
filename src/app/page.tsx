@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Zap, Plus, ChevronRight } from "lucide-react";
@@ -8,7 +8,7 @@ import { Button } from "@/components/Button";
 import { MatchCard } from "@/components/MatchCard";
 
 export default function HomePage() {
-  const { data: session } = useSession();
+  const { data: session } = authClient.useSession();
 
   const { data: matchesData, isLoading } = useQuery({
     queryKey: ["matches", "recent", "exclude-tournament"],
@@ -24,7 +24,7 @@ export default function HomePage() {
       ? matchesData
       : [];
 
-  const firstName = session?.user?.name?.split(" ")[0];
+  const firstName = session?.user?.name?.split(" ")?.[0];
 
   return (
     <div className="px-4 pt-8">

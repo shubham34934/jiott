@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getApiActor } from "@/lib/sync-neon-user";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
 /**
@@ -13,8 +12,8 @@ export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -41,7 +40,7 @@ export async function POST(
   let linked = 0;
   for (const tm of slots) {
     const beforeId = tm.id;
-    await ensureTournamentPlayableMatch(beforeId, session.user.id);
+    await ensureTournamentPlayableMatch(beforeId, actor.prismaUserId);
     const after = await prisma.tournamentMatch.findUnique({
       where: { id: beforeId },
       select: { matchId: true },

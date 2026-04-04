@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/Button";
+import { authClient } from "@/lib/auth-client";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -18,17 +19,17 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    const { error } = await authClient.forgetPassword.emailOtp({
+      email: email.trim().toLowerCase(),
     });
-
-    const data = await res.json();
     setLoading(false);
 
-    if (!res.ok) {
-      setError(data.error);
+    if (error) {
+      setError(
+        typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message: string }).message)
+          : "Could not send reset code."
+      );
       return;
     }
 

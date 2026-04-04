@@ -8,7 +8,7 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
 - **Database**: PostgreSQL (Neon) with Prisma ORM v6
-- **Auth**: NextAuth.js (credentials + Prisma adapter)
+- **Auth**: Neon Auth (`@neondatabase/auth`) + Prisma for app `User` / `Player`
 - **Data Fetching**: TanStack React Query
 - **Icons**: Lucide React
 
@@ -37,7 +37,7 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
    ```
 
 2. **Configure environment variables**:
-   Copy `.env.example` to `.env` and set `DATABASE_URL` (Neon connection string with `?sslmode=require`), `NEXTAUTH_SECRET`, and `NEXTAUTH_URL`.
+   Copy `.env.example` to `.env` and set `DATABASE_URL`, `NEON_AUTH_BASE_URL`, and `NEON_AUTH_COOKIE_SECRET` (see `.env.example`). Enable **Auth** on your Neon branch and paste the Auth URL from the console.
 
 3. **Apply database migrations**:
    ```bash

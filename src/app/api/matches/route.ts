@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getApiActor } from "@/lib/sync-neon-user";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -108,8 +107,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -143,7 +142,7 @@ export async function POST(req: Request) {
       totalSets: totalSets || 3,
       pointsPerSet: pointsPerSet || 11,
       isFriendly: isFriendly || false,
-      createdBy: session.user.id,
+      createdBy: actor.prismaUserId,
       participants: {
         create: playerIds.map((playerId: string, index: number) => ({
           playerId,
@@ -178,7 +177,7 @@ export async function POST(req: Request) {
       entityId: match.id,
       action: "CREATED",
       newValue: { type, playerIds, totalSets, pointsPerSet, isFriendly: isFriendly || false },
-      updatedBy: session.user.id,
+      updatedBy: actor.prismaUserId,
       matchId: match.id,
     },
   });

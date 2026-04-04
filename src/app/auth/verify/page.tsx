@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
 import { CheckCircle2 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 function VerifyForm() {
   const router = useRouter();
@@ -77,17 +78,18 @@ function VerifyForm() {
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/auth/verify-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code: otp }),
+    const { error } = await authClient.emailOtp.verifyEmail({
+      email,
+      otp,
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
+    if (error) {
       setLoading(false);
-      setError(data.error);
+      setError(
+        typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message: string }).message)
+          : "Invalid or expired code."
+      );
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
       return;
@@ -102,17 +104,18 @@ function VerifyForm() {
     setResendMsg("");
     setError("");
 
-    const res = await fetch("/api/auth/resend-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, type: "VERIFY_EMAIL" }),
+    const { error } = await authClient.emailOtp.sendVerificationOtp({
+      email,
+      type: "email-verification",
     });
-
-    const data = await res.json();
     setResending(false);
 
-    if (!res.ok) {
-      setError(data.error);
+    if (error) {
+      setError(
+        typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message: string }).message)
+          : "Could not resend code."
+      );
       return;
     }
 

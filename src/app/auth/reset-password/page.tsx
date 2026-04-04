@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/Button";
+import { authClient } from "@/lib/auth-client";
 
 function ResetForm() {
   const router = useRouter();
@@ -77,18 +78,20 @@ function ResetForm() {
 
     setLoading(true);
 
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code: code.join(""), newPassword: password }),
+    const { error } = await authClient.emailOtp.resetPassword({
+      email,
+      otp: code.join(""),
+      password,
     });
-
-    const data = await res.json();
     setLoading(false);
 
-    if (!res.ok) {
-      setError(data.error);
-      if (data.error?.includes("expired") || data.error?.includes("Invalid")) {
+    if (error) {
+      const msg =
+        typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message: string }).message)
+          : "Reset failed.";
+      setError(msg);
+      if (/expired|invalid/i.test(msg)) {
         setCode(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       }
@@ -101,13 +104,9 @@ function ResetForm() {
 
   const handleResend = async () => {
     setResending(true);
-    const res = await fetch("/api/auth/resend-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, type: "RESET_PASSWORD" }),
-    });
+    const { error } = await authClient.forgetPassword.emailOtp({ email });
     setResending(false);
-    if (res.ok) {
+    if (!error) {
       setCountdown(60);
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();

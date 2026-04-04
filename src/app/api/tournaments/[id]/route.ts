@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getApiActor } from "@/lib/sync-neon-user";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 
 const tournamentInclude = {
@@ -115,8 +114,8 @@ export async function GET(
     }
   }
 
-  const session = await getServerSession(authOptions);
-  const canDelete = session?.user?.id === tournament.createdBy;
+  const actor = await getApiActor();
+  const canDelete = actor?.prismaUserId === tournament.createdBy;
 
   return NextResponse.json({ ...tournament, canDelete });
 }
@@ -125,8 +124,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -144,7 +143,7 @@ export async function DELETE(
     );
   }
 
-  if (tournament.createdBy !== session.user.id) {
+  if (tournament.createdBy !== actor.prismaUserId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -180,8 +179,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const actor = await getApiActor();
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

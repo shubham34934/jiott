@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { TournamentListCard } from "@/components/TournamentListCard";
 import { Button } from "@/components/Button";
 
@@ -32,7 +32,7 @@ function getTeamName(team: TeamLike | null): string {
 }
 
 export default function TournamentsListPage() {
-  const { data: session } = useSession();
+  const { data: session } = authClient.useSession();
 
   const { data: tournaments, isLoading } = useQuery<TournamentListItem[]>({
     queryKey: ["tournaments"],

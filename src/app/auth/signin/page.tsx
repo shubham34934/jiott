@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
@@ -26,36 +26,25 @@ function SignInForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      const checkRes = await fetch("/api/auth/check-credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail, password }),
-      });
-
-      const checkData = await checkRes.json();
-
-      if (checkRes.status === 403 && checkData.status === "not_verified") {
-        setLoading(false);
-        router.push(`/auth/verify?email=${encodeURIComponent(checkData.email)}`);
-        return;
-      }
-
-      if (!checkRes.ok) {
-        setLoading(false);
-        setError(checkData.error);
-        return;
-      }
-
-      const result = await signIn("credentials", {
+      const { error } = await authClient.signIn.email({
         email: normalizedEmail,
         password,
-        redirect: false,
       });
 
       setLoading(false);
 
-      if (result?.error) {
-        setError("Sign in failed. Please try again.");
+      if (error) {
+        const msg =
+          typeof error === "object" && error !== null && "message" in error
+            ? String((error as { message: string }).message)
+            : "Sign in failed.";
+        if (/verify|verif/i.test(msg)) {
+          router.push(
+            `/auth/verify?email=${encodeURIComponent(normalizedEmail)}`
+          );
+          return;
+        }
+        setError(msg);
         return;
       }
 

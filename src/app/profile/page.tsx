@@ -1,15 +1,15 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut, Trophy, Target, TrendingUp } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/Button";
+import { useNeonAppSession } from "@/hooks/useNeonAppSession";
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, signOut } = useNeonAppSession();
 
   const { data: player } = useQuery({
     queryKey: ["player", session?.user?.playerId],
@@ -35,9 +35,11 @@ export default function ProfilePage() {
           Sign in to track your matches and compete on the leaderboard
         </p>
         <div className="space-y-3 w-full max-w-xs">
-          <Button onClick={() => signIn()} fullWidth size="lg">
-            Sign in
-          </Button>
+          <Link href="/auth/signin">
+            <Button fullWidth size="lg">
+              Sign in
+            </Button>
+          </Link>
           <Link href="/auth/register">
             <Button variant="secondary" fullWidth size="lg">
               Create account
@@ -59,7 +61,7 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold">Profile</h1>
         <button
           type="button"
-          onClick={() => signOut()}
+          onClick={() => void signOut()}
           className="p-2 text-neutral hover:text-text-primary"
           aria-label="Sign out"
         >
