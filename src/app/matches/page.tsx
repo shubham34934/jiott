@@ -6,6 +6,7 @@ import { InfiniteScrollSentinel } from "@/components/InfiniteScrollSentinel";
 import { MatchFiltersBar } from "@/components/MatchFiltersBar";
 import { MatchListCards, type MatchListItem } from "@/components/MatchListCards";
 import type { MatchFilterTab, MatchSourceTab } from "@/lib/matchFilters";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 const MATCHES_PAGE_SIZE = 20;
 
@@ -56,6 +57,7 @@ export default function MatchesPage() {
       return r.json();
     },
     getNextPageParam: (last) => (last.hasMore ? last.nextOffset : undefined),
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const matches = data?.pages.flatMap((p) => p.items) ?? [];

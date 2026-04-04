@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TeamPlayersLinks } from "@/components/PlayerProfileLink";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 interface TeamData {
   id: string;
@@ -64,6 +65,7 @@ export default function TournamentPage({
   const { data: tournament, isLoading } = useQuery<TournamentData>({
     queryKey: ["tournament", id],
     queryFn: () => fetch(`/api/tournaments/${id}`).then((r) => r.json()),
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const deleteTournament = useMutation({

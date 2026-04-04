@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/Button";
 import { useNeonAppSession } from "@/hooks/useNeonAppSession";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export default function ProfilePage() {
   const { data: session, status, signOut } = useNeonAppSession();
@@ -16,6 +17,7 @@ export default function ProfilePage() {
     queryFn: () =>
       fetch(`/api/players/${session?.user?.playerId}`).then((r) => r.json()),
     enabled: !!session?.user?.playerId,
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   if (status === "loading") {

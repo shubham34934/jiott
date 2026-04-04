@@ -7,6 +7,7 @@ import { ArrowLeft, User, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { fetchPlayersForPicker } from "@/lib/fetchPlayersForPicker";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -36,6 +37,7 @@ export default function NewTournamentPage() {
   const { data: players } = useQuery<PlayerOption[]>({
     queryKey: ["players", "picker"],
     queryFn: () => fetchPlayersForPicker() as Promise<PlayerOption[]>,
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const createTournament = useMutation({

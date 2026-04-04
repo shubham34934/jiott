@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
 import { getApiActor } from "@/lib/sync-neon-user";
 
 function isValidSetScore(a: number, b: number, target: number): boolean {
@@ -86,6 +88,8 @@ export async function PATCH(
       matchId,
     },
   });
+
+  revalidateTag(MATCH_LIST_CACHE_TAG, "max");
 
   return NextResponse.json(updatedSet);
 }

@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDisplayDate } from "@/lib/formatDisplayDate";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 interface Participant {
   team: "A" | "B";
@@ -142,6 +143,7 @@ export default function MatchDetailPage({
   const { data: match, isLoading } = useQuery<MatchData>({
     queryKey: ["match", id],
     queryFn: () => fetch(`/api/matches/${id}`).then((r) => r.json()),
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const savingSetRef = useRef(-1);

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { TournamentListCard } from "@/components/TournamentListCard";
 import { Button } from "@/components/Button";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 interface TeamLike {
   player1: { user: { name: string | null } };
@@ -37,6 +38,7 @@ export default function TournamentsListPage() {
   const { data: tournaments, isLoading } = useQuery<TournamentListItem[]>({
     queryKey: ["tournaments"],
     queryFn: () => fetch("/api/tournaments").then((r) => r.json()),
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   return (

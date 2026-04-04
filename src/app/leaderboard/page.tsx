@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 interface LeaderboardPlayer {
   id: string;
@@ -23,6 +24,7 @@ export default function LeaderboardPage() {
   const { data: players, isLoading } = useQuery<LeaderboardPlayer[]>({
     queryKey: ["leaderboard"],
     queryFn: () => fetch("/api/leaderboard").then((r) => r.json()),
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   if (isLoading) {

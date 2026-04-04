@@ -5,6 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowDownWideNarrow, Search } from "lucide-react";
 import { InfiniteScrollSentinel } from "@/components/InfiniteScrollSentinel";
 import { PlayerCard } from "@/components/PlayerCard";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 type PlayerSort = "rating" | "matchesPlayed" | "matchesWon";
 
@@ -62,6 +63,7 @@ export default function PlayersPage() {
       return r.json();
     },
     getNextPageParam: (last) => (last.hasMore ? last.nextOffset : undefined),
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const players = data?.pages.flatMap((p) => p.items) ?? [];

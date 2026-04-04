@@ -1,4 +1,6 @@
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
 
 /**
  * Creates a playable Match + links it to the tournament slot when both teams are set
@@ -111,4 +113,6 @@ export async function ensureTournamentPlayableMatch(
       },
     });
   });
+
+  revalidateTag(MATCH_LIST_CACHE_TAG, "max");
 }

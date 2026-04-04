@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export type AppSessionUser = {
   id: string;
@@ -23,6 +24,7 @@ export function useNeonAppSession() {
       return res.json() as Promise<AppSessionUser | null>;
     },
     enabled: !!authState.data?.user,
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const loading =

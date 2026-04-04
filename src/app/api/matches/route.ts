@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getApiActor } from "@/lib/sync-neon-user";
+import {
+  getMatchesListData,
+  MATCH_LIST_CACHE_TAG,
+} from "@/lib/get-matches-list";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+
+export const revalidate = 30;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -18,92 +25,16 @@ export async function GET(req: Request) {
   const rawOffset = parseInt(searchParams.get("offset") || "0", 10);
   const offset = Math.max(0, Number.isNaN(rawOffset) ? 0 : rawOffset);
 
-  const linkedRows = await prisma.tournamentMatch.findMany({
-    where: { matchId: { not: null } },
-    select: { matchId: true },
-  });
-  const linkedMatchIds = [
-    ...new Set(
-      linkedRows
-        .map((r) => r.matchId)
-        .filter((id): id is string => id != null)
-    ),
-  ];
-  const linkedSet = new Set(linkedMatchIds);
+  const listParams = { status, friendly, tournament, limit, offset };
+  const cacheKey = JSON.stringify(listParams);
 
-  const where: Record<string, unknown> = {};
-  if (status) where.status = status as "ONGOING" | "COMPLETED";
-  if (friendly === "true") where.isFriendly = true;
+  const body = await unstable_cache(
+    () => getMatchesListData(listParams),
+    ["matches-list", cacheKey],
+    { revalidate: 30, tags: [MATCH_LIST_CACHE_TAG] }
+  )();
 
-  if (tournament === "exclude" && linkedMatchIds.length > 0) {
-    where.id = { notIn: linkedMatchIds };
-  } else if (tournament === "only") {
-    if (linkedMatchIds.length === 0) {
-      return NextResponse.json({
-        items: [],
-        hasMore: false,
-        nextOffset: 0,
-        total: 0,
-      });
-    }
-    where.id = { in: linkedMatchIds };
-  }
-
-  const total = await prisma.match.count({ where });
-
-  const matches = await prisma.match.findMany({
-    where,
-    include: {
-      participants: {
-        include: {
-          player: {
-            include: {
-              user: { select: { name: true, image: true } },
-            },
-          },
-        },
-      },
-      sets: { orderBy: { setNumber: "asc" } },
-    },
-    orderBy: { createdAt: "desc" },
-    skip: offset,
-    take: limit + 1,
-  });
-
-  const hasMore = matches.length > limit;
-  const pageMatches = hasMore ? matches.slice(0, limit) : matches;
-
-  const matchIds = pageMatches.map((m) => m.id);
-  const tournamentLinks =
-    matchIds.length > 0
-      ? await prisma.tournamentMatch.findMany({
-          where: { matchId: { in: matchIds } },
-          select: {
-            matchId: true,
-            tournament: { select: { name: true } },
-          },
-        })
-      : [];
-
-  const tournamentNameByMatchId = new Map<string, string>();
-  for (const row of tournamentLinks) {
-    if (row.matchId && !tournamentNameByMatchId.has(row.matchId)) {
-      tournamentNameByMatchId.set(row.matchId, row.tournament.name);
-    }
-  }
-
-  const payload = pageMatches.map((m) => ({
-    ...m,
-    isTournamentMatch: linkedSet.has(m.id),
-    tournamentName: tournamentNameByMatchId.get(m.id) ?? null,
-  }));
-
-  return NextResponse.json({
-    items: payload,
-    hasMore,
-    nextOffset: offset + payload.length,
-    total,
-  });
+  return NextResponse.json(body);
 }
 
 export async function POST(req: Request) {
@@ -181,6 +112,8 @@ export async function POST(req: Request) {
       matchId: match.id,
     },
   });
+
+  revalidateTag(MATCH_LIST_CACHE_TAG, "max");
 
   return NextResponse.json(match, { status: 201 });
 }

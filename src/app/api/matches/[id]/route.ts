@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
 import { getApiActor } from "@/lib/sync-neon-user";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
@@ -123,6 +125,8 @@ export async function DELETE(
   await prisma.match.delete({
     where: { id },
   });
+
+  revalidateTag(MATCH_LIST_CACHE_TAG, "max");
 
   return NextResponse.json({ success: true });
 }
@@ -301,6 +305,8 @@ async function completeMatch(matchId: string, userId: string) {
 
     await syncTournamentCompletionAfterMatch(tournamentMatch.id);
   }
+
+  revalidateTag(MATCH_LIST_CACHE_TAG, "max");
 
   return NextResponse.json({ success: true });
 }

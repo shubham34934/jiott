@@ -7,6 +7,7 @@ import { ArrowLeft, User, Users, Search, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { fetchPlayersForPicker } from "@/lib/fetchPlayersForPicker";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 type Step = 1 | 2 | 3 | 4;
 type MatchType = "SINGLES" | "DOUBLES";
@@ -29,6 +30,7 @@ export default function NewMatchPage() {
   const { data: players } = useQuery<PlayerOption[]>({
     queryKey: ["players", "picker"],
     queryFn: () => fetchPlayersForPicker() as Promise<PlayerOption[]>,
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   const createMatch = useMutation({
