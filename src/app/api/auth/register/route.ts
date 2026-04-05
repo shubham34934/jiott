@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { OtpType } from "@prisma/client";
+import { OtpType, Prisma } from "@prisma/client";
 import { createOtpRecord } from "@/lib/auth-otp";
 import { sendOtpEmail } from "@/lib/email";
 import { hashPassword } from "@/lib/password";
@@ -52,14 +52,24 @@ export async function POST(req: Request) {
   }
 
   const hashed = await hashPassword(password);
-  await prisma.user.create({
-    data: {
-      email,
-      name,
-      password: hashed,
-      emailVerified: null,
-    },
-  });
+  try {
+    await prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashed,
+        emailVerified: null,
+      },
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return NextResponse.json(
+        { error: "An account with this email already exists." },
+        { status: 409 }
+      );
+    }
+    throw e;
+  }
 
   const otp = await createOtpRecord(email, OtpType.VERIFY_EMAIL);
   const sent = await sendOtpEmail(email, name, otp, "verify");
