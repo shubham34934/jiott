@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
 import { LEADERBOARD_CACHE_TAG } from "@/lib/get-leaderboard";
 import { PLAYERS_LIST_CACHE_TAG } from "@/lib/get-players-list";
-import { getApiActor } from "@/lib/sync-neon-user";
+import { getApiActor } from "@/lib/get-api-actor";
 import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";

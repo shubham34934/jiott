@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TOURNAMENTS_LIST_CACHE_TAG } from "@/lib/get-tournaments-list";
-import { getApiActor } from "@/lib/sync-neon-user";
+import { getApiActor } from "@/lib/get-api-actor";
 import {
   generateBracket,
   generateRoundRobin,

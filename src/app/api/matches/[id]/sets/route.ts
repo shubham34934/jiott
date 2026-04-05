@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
-import { getApiActor } from "@/lib/sync-neon-user";
+import { getApiActor } from "@/lib/get-api-actor";
 
 function isValidSetScore(a: number, b: number, target: number): boolean {
   if (!Number.isInteger(a) || !Number.isInteger(b)) return false;

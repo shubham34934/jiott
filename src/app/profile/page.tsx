@@ -14,11 +14,11 @@ import { Avatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
-import { useNeonAppSession } from "@/hooks/useNeonAppSession";
+import { useAppSession } from "@/hooks/use-app-session";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export default function ProfilePage() {
-  const { data: session, status, signOut } = useNeonAppSession();
+  const { data: session, status, signOut } = useAppSession();
 
   const { data: player } = useQuery({
     queryKey: ["player", session?.user?.playerId],

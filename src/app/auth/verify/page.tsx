@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
 import { CheckCircle2 } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
 
 function VerifyForm() {
   const router = useRouter();
@@ -47,7 +46,6 @@ function VerifyForm() {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all 6 digits entered
     if (digit && index === 5) {
       const fullCode = [...newCode].join("");
       if (fullCode.length === 6) handleVerify(fullCode);
@@ -79,25 +77,28 @@ function VerifyForm() {
     setLoading(true);
     setError("");
 
-    const { error } = await authClient.emailOtp.verifyEmail({
-      email,
-      otp,
-    });
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setLoading(false);
+        setError(data.error ?? "Invalid or expired code.");
+        setCode(["", "", "", "", "", ""]);
+        inputRefs.current[0]?.focus();
+        return;
+      }
 
-    if (error) {
       setLoading(false);
-      setError(
-        typeof error === "object" && error !== null && "message" in error
-          ? String((error as { message: string }).message)
-          : "Invalid or expired code."
-      );
-      setCode(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-      return;
+      setVerified(true);
+      setTimeout(() => router.push("/auth/signin?callbackUrl=/profile"), 2000);
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Try again.");
     }
-
-    setVerified(true);
-    setTimeout(() => router.push("/auth/signin?callbackUrl=/profile"), 2000);
   };
 
   const handleResend = async () => {
@@ -105,25 +106,28 @@ function VerifyForm() {
     setResendMsg("");
     setError("");
 
-    const { error } = await authClient.emailOtp.sendVerificationOtp({
-      email,
-      type: "email-verification",
-    });
-    setResending(false);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json()) as { error?: string };
+      setResending(false);
 
-    if (error) {
-      setError(
-        typeof error === "object" && error !== null && "message" in error
-          ? String((error as { message: string }).message)
-          : "Could not resend code."
-      );
-      return;
+      if (!res.ok) {
+        setError(data.error ?? "Could not resend code.");
+        return;
+      }
+
+      setResendMsg("New code sent!");
+      setCountdown(60);
+      setCode(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch {
+      setResending(false);
+      setError("Could not resend code.");
     }
-
-    setResendMsg("New code sent!");
-    setCountdown(60);
-    setCode(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
   };
 
   if (verified) {

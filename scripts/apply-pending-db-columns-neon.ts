@@ -18,7 +18,7 @@ if (!url || (!url.startsWith("postgresql://") && !url.startsWith("postgres://"))
 }
 
 async function main() {
-  const sql = neon(url);
+  const sql = neon(url as string);
 
   await sql`ALTER TABLE "Player" ADD COLUMN IF NOT EXISTS "currentWinStreak" INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE "Player" ADD COLUMN IF NOT EXISTS "bestWinStreak" INTEGER NOT NULL DEFAULT 0`;

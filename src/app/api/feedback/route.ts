@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { FeedbackCategory } from "@prisma/client";
-import { neonAuth } from "@/lib/neon-auth-server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { syncNeonUserToPrisma } from "@/lib/sync-neon-user";
 
 export const dynamic = "force-dynamic";
 
@@ -59,16 +58,9 @@ export async function POST(req: Request) {
   }
 
   let userId: string | null = null;
-  const { data: session } = await neonAuth.getSession();
-  if (session?.user?.email) {
-    const u = session.user;
-    const { user } = await syncNeonUserToPrisma({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      emailVerified: u.emailVerified,
-    });
-    userId = user.id;
+  const session = await auth();
+  if (session?.user?.id) {
+    userId = session.user.id;
   }
 
   await prisma.feedback.create({

@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/Button";
 
 export function TournamentsHeader() {
-  const { data: session } = authClient.useSession();
+  const { data: session } = useSession();
 
   return (
     <Link href={session ? "/tournaments/new" : "/auth/signin"} className="shrink-0">

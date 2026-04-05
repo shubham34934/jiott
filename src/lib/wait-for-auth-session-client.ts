@@ -1,18 +1,11 @@
 function responseHasUser(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
   const o = body as Record<string, unknown>;
-  if (o.user != null) return true;
-  const inner = o.data;
-  if (inner && typeof inner === "object" && (inner as { user?: unknown }).user != null) {
-    return true;
-  }
-  return false;
+  return o.user != null && typeof o.user === "object";
 }
 
 /**
- * After `signIn.email`, better-auth flips the session store on a short timeout, so a same-tick
- * `router.push` can mount the next page before the client sees the new session. Poll get-session
- * (with cookies) until the user is present or we time out.
+ * After `signIn`, the client session store may lag briefly; poll `/api/auth/session` until the user is present.
  */
 export async function waitForAuthSessionClient(
   maxAttempts = 40,
@@ -20,7 +13,7 @@ export async function waitForAuthSessionClient(
 ): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const res = await fetch("/api/auth/get-session", {
+      const res = await fetch("/api/auth/session", {
         credentials: "include",
       });
       if (!res.ok) {

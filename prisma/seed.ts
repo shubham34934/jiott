@@ -5,7 +5,7 @@
  *
  *   ALLOW_SEED=true npx prisma db seed
  *
- * Neon Auth: passwords are not set here; sign in with your real account or register.
+ * Seed users have no password; register a real account or add passwords in Prisma for local testing.
  * Domain data (leaderboard, matches, tournaments) is for UI/dev testing.
  */
 

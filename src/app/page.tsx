@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Zap, Plus, ChevronRight } from "lucide-react";
@@ -10,7 +10,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { dashboardMatchesPrefetch } from "@/lib/query-prefetch";
 
 export default function HomePage() {
-  const { data: session } = authClient.useSession();
+  const { data: session } = useSession();
 
   const { data: matchesData, isLoading } = useQuery({
     ...dashboardMatchesPrefetch,

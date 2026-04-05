@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
-import { authClient } from "@/lib/auth-client";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -20,21 +19,25 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await authClient.forgetPassword.emailOtp({
-      email: email.trim().toLowerCase(),
-    });
-    setLoading(false);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = (await res.json()) as { error?: string };
+      setLoading(false);
 
-    if (error) {
-      setError(
-        typeof error === "object" && error !== null && "message" in error
-          ? String((error as { message: string }).message)
-          : "Could not send reset code."
-      );
-      return;
+      if (!res.ok) {
+        setError(data.error ?? "Could not send reset code.");
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Please try again.");
     }
-
-    setSent(true);
   };
 
   if (sent) {

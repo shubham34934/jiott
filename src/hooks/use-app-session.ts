@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { authClient } from "@/lib/auth-client";
+import { signOut as nextSignOut, useSession } from "next-auth/react";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export type AppSessionUser = {
@@ -12,28 +12,24 @@ export type AppSessionUser = {
   image: string | null;
 };
 
-/** Neon Auth session + `/api/me` (Prisma player id for APIs). */
-export function useNeonAppSession() {
+/** NextAuth session + `/api/me` (Prisma player id for APIs). */
+export function useAppSession() {
   const queryClient = useQueryClient();
-  const authState = authClient.useSession() as {
-    data?: { user?: { id?: string } } | null;
-    isPending: boolean;
-    isRefetching?: boolean;
-  };
+  const { data: authData, status: authStatus, update } = useSession();
 
   const meQuery = useQuery({
-    queryKey: ["me", authState.data?.user?.id],
+    queryKey: ["me", authData?.user?.id],
     queryFn: async () => {
       const res = await fetch("/api/me", { credentials: "include" });
       return res.json() as Promise<AppSessionUser | null>;
     },
-    enabled: !!authState.data?.user,
+    enabled: !!authData?.user?.id,
     staleTime: QUERY_STALE_TIME_MS,
     retry: 4,
     retryDelay: (attempt) => Math.min(1500, 400 * 2 ** attempt),
   });
 
-  const hasAuthUser = !!authState.data?.user;
+  const hasAuthUser = !!authData?.user?.id;
 
   const mePayload = meQuery.data;
   const hasMe =
@@ -42,28 +38,28 @@ export function useNeonAppSession() {
     "playerId" in mePayload;
 
   const loading =
-    authState.isPending ||
-    (!hasAuthUser && !!authState.isRefetching) ||
+    authStatus === "loading" ||
     (hasAuthUser &&
       !meQuery.isError &&
       !hasMe &&
       (meQuery.isPending || meQuery.isFetching || meQuery.isLoading));
 
-  const authUser = authState.data?.user;
+  const authUser = authData?.user;
   const user =
     authUser && hasMe && mePayload && typeof mePayload === "object"
       ? {
           id: (mePayload as AppSessionUser).id,
           playerId: (mePayload as AppSessionUser).playerId,
           name: (mePayload as AppSessionUser).name ?? authUser.name,
-          email: (mePayload as AppSessionUser).email ?? authUser.email,
+          email: (mePayload as AppSessionUser).email ?? authUser.email ?? "",
           image:
             (mePayload as AppSessionUser).image ?? authUser.image ?? null,
         }
       : null;
 
   async function signOut() {
-    await authClient.signOut();
+    await nextSignOut({ redirect: false });
+    await update();
     await queryClient.invalidateQueries({ queryKey: ["me"] });
   }
 

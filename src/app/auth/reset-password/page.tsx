@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Eye, EyeOff, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
-import { authClient } from "@/lib/auth-client";
 
 function ResetForm() {
   const router = useRouter();
@@ -79,38 +78,53 @@ function ResetForm() {
 
     setLoading(true);
 
-    const { error } = await authClient.emailOtp.resetPassword({
-      email,
-      otp: code.join(""),
-      password,
-    });
-    setLoading(false);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          otp: code.join(""),
+          password,
+        }),
+      });
+      const data = (await res.json()) as { error?: string };
+      setLoading(false);
 
-    if (error) {
-      const msg =
-        typeof error === "object" && error !== null && "message" in error
-          ? String((error as { message: string }).message)
-          : "Reset failed.";
-      setError(msg);
-      if (/expired|invalid/i.test(msg)) {
-        setCode(["", "", "", "", "", ""]);
-        inputRefs.current[0]?.focus();
+      if (!res.ok) {
+        const msg = data.error ?? "Reset failed.";
+        setError(msg);
+        if (/expired|invalid/i.test(msg)) {
+          setCode(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+        }
+        return;
       }
-      return;
-    }
 
-    setSuccess(true);
-    setTimeout(() => router.push("/auth/signin"), 2000);
+      setSuccess(true);
+      setTimeout(() => router.push("/auth/signin"), 2000);
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Try again.");
+    }
   };
 
   const handleResend = async () => {
     setResending(true);
-    const { error } = await authClient.forgetPassword.emailOtp({ email });
-    setResending(false);
-    if (!error) {
-      setCountdown(60);
-      setCode(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setResending(false);
+      if (res.ok) {
+        setCountdown(60);
+        setCode(["", "", "", "", "", ""]);
+        inputRefs.current[0]?.focus();
+      }
+    } catch {
+      setResending(false);
     }
   };
 

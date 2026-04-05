@@ -1,28 +1,38 @@
 import { NextResponse } from "next/server";
-import { neonAuth } from "@/lib/neon-auth-server";
-import { syncNeonUserToPrisma } from "@/lib/sync-neon-user";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { data: session } = await neonAuth.getSession();
-  if (!session?.user?.email) {
+  const session = await auth();
+  const id = session?.user?.id;
+  if (!id) {
     return NextResponse.json(null);
   }
 
-  const u = session.user;
-  const { user, player } = await syncNeonUserToPrisma({
-    id: u.id,
-    email: u.email,
-    name: u.name,
-    emailVerified: u.emailVerified,
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: { player: true },
   });
+  if (!user) {
+    return NextResponse.json(null);
+  }
+
+  let playerId = user.player?.id;
+  if (!playerId) {
+    const p = await prisma.player.create({
+      data: { userId: user.id },
+      select: { id: true },
+    });
+    playerId = p.id;
+  }
 
   return NextResponse.json({
     id: user.id,
-    playerId: player.id,
-    name: u.name,
-    email: u.email,
-    image: u.image ?? null,
+    playerId,
+    name: user.name,
+    email: user.email,
+    image: user.image,
   });
 }

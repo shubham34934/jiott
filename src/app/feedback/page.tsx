@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, MessageSquareHeart } from "lucide-react";
 import { Button } from "@/components/Button";
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "next-auth/react";
 
 const categories = [
   { value: "GENERAL", label: "General" },
@@ -15,7 +15,7 @@ const categories = [
 
 export default function FeedbackPage() {
   const pathname = usePathname();
-  const { data: session } = authClient.useSession();
+  const { data: session } = useSession();
   const [category, setCategory] = useState<(typeof categories)[number]["value"]>("GENERAL");
   const [message, setMessage] = useState("");
   const [contactEmail, setContactEmail] = useState("");

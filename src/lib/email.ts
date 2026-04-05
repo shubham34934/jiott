@@ -1,7 +1,5 @@
 /**
- * Branded OTP HTML for SMTP (`sendOtpEmail`). Registration verification via `authClient.emailOtp`
- * is emailed by Neon Auth; to use this template for those OTPs, register a Neon Auth webhook for
- * `send.otp` and send mail with `buildBrandedOtpEmailHtml` (see Neon “Auth webhooks” guide).
+ * Branded OTP HTML for SMTP (`sendOtpEmail`). Used for email verification and password reset OTPs.
  */
 import nodemailer from "nodemailer";
 
@@ -18,7 +16,7 @@ const EMAIL_APP_ICON_SVG = `
 
 /**
  * Optional absolute URL for `/logo.svg` (many clients render raster/img better than inline SVG).
- * Neon Auth sends verification OTP from Neon's servers; this only affects `sendOtpEmail()`.
+ * Optional logo URL for HTML emails.
  */
 function resolveEmailLogoImgSrc(): string | null {
   const explicit = process.env.EMAIL_LOGO_URL?.trim();

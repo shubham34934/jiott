@@ -8,7 +8,7 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
 - **Database**: PostgreSQL (Neon) with Prisma ORM v6
-- **Auth**: Neon Auth (`@neondatabase/auth`) + Prisma for app `User` / `Player`
+- **Auth**: NextAuth.js (Auth.js v5) credentials + email OTP (Prisma `User` / `OtpCode`) + optional SMTP
 - **Data Fetching**: TanStack React Query
 - **Icons**: Lucide React
 
@@ -37,7 +37,7 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
    ```
 
 2. **Configure environment variables**:
-   Copy `.env.example` to `.env` and set `DATABASE_URL`, `NEON_AUTH_BASE_URL`, and `NEON_AUTH_COOKIE_SECRET` (see `.env.example`). Enable **Auth** on your Neon branch and paste the Auth URL from the console.
+   Copy `.env.example` to `.env` and set `DATABASE_URL`, `AUTH_SECRET` (≥32 characters, e.g. `openssl rand -base64 32`), and optional `SMTP_*` for sending verification / reset OTP emails (without SMTP, dev mode logs OTPs to the terminal).
 
 3. **Apply database migrations**:
    ```bash
@@ -66,7 +66,7 @@ A mobile-first Progressive Web App (PWA) for tracking table tennis matches, play
 src/
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes
-│   │   ├── auth/          # NextAuth endpoints
+│   │   ├── auth/          # NextAuth + register / verify / reset routes
 │   │   ├── matches/       # Match CRUD + score updates
 │   │   ├── players/       # Player listing + profiles
 │   │   ├── leaderboard/   # Ranked player list

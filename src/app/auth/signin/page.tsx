@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { authClient } from "@/lib/auth-client";
+import { signIn } from "next-auth/react";
 import { safeReturnPath } from "@/lib/safe-return-path";
 import { waitForAuthSessionClient } from "@/lib/wait-for-auth-session-client";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,31 +30,31 @@ function SignInForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      const { error } = await authClient.signIn.email({
+      const res = await signIn("credentials", {
         email: normalizedEmail,
         password,
+        redirect: false,
+        callbackUrl: returnTo,
       });
 
-      if (error) {
+      if (!res?.ok) {
         setLoading(false);
-        const msg =
-          typeof error === "object" && error !== null && "message" in error
-            ? String((error as { message: string }).message)
-            : "Sign in failed.";
-        if (/verify|verif/i.test(msg)) {
+        if (res?.code === "email_not_verified") {
           router.push(
             `/auth/verify?email=${encodeURIComponent(normalizedEmail)}`
           );
           return;
         }
-        setError(msg);
+        setError(
+          res?.error === "CredentialsSignin"
+            ? "Invalid email or password."
+            : "Sign in failed."
+        );
         return;
       }
 
       await waitForAuthSessionClient();
       setLoading(false);
-      // Full navigation: `router.push` mounts before better-auth's session store refetches (it flips
-      // on a timeout after sign-in), so useSession() still looks logged out until reload.
       window.location.assign(returnTo);
     } catch {
       setLoading(false);

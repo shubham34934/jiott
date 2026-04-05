@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
-import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -36,29 +35,28 @@ export default function RegisterPage() {
     setLoading(true);
 
     const email = form.email.trim().toLowerCase();
-    const { error: signUpErr } = await authClient.signUp.email({
-      email,
-      password: form.password,
-      name: form.name.trim(),
-    });
-
-    if (signUpErr) {
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email,
+          password: form.password,
+        }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Could not create account.");
+        setLoading(false);
+        return;
+      }
       setLoading(false);
-      setError(
-        typeof signUpErr === "object" && signUpErr !== null && "message" in signUpErr
-          ? String((signUpErr as { message: string }).message)
-          : "Could not create account."
-      );
-      return;
+      router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Please try again.");
     }
-
-    await authClient.emailOtp.sendVerificationOtp({
-      email,
-      type: "email-verification",
-    });
-
-    setLoading(false);
-    router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
   };
 
   const passwordStrength = () => {

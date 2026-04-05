@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getApiActor } from "@/lib/sync-neon-user";
+import { getApiActor } from "@/lib/get-api-actor";
 import {
   getMatchesListData,
   MATCH_LIST_CACHE_TAG,
