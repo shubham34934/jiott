@@ -34,6 +34,7 @@ export async function syncNeonUserToPrisma(neonUser: NeonSessionUser) {
 
   const player = await prisma.player.findUniqueOrThrow({
     where: { userId: user.id },
+    select: { id: true },
   });
 
   return { user, player };

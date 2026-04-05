@@ -7,7 +7,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <NeonAuthUIProvider
       authClient={authClient as never}
-      redirectTo="/"
+      redirectTo="/profile"
     >
       {children}
     </NeonAuthUIProvider>

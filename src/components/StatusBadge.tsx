@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Lock } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Lock } from "lucide-react";
 
 interface StatusBadgeProps {
   status: string;
@@ -30,6 +30,13 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
           <Clock size={14} />
           Ongoing
+        </span>
+      );
+    case "DISPUTED":
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning bg-warning/15 rounded-full px-2.5 py-1">
+          <AlertTriangle size={14} className="shrink-0" />
+          Disputed
         </span>
       );
     case "READY":

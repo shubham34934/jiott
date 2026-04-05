@@ -15,32 +15,50 @@ export type AppSessionUser = {
 /** Neon Auth session + `/api/me` (Prisma player id for APIs). */
 export function useNeonAppSession() {
   const queryClient = useQueryClient();
-  const authState = authClient.useSession();
+  const authState = authClient.useSession() as {
+    data?: { user?: { id?: string } } | null;
+    isPending: boolean;
+    isRefetching?: boolean;
+  };
 
   const meQuery = useQuery({
     queryKey: ["me", authState.data?.user?.id],
     queryFn: async () => {
-      const res = await fetch("/api/me");
+      const res = await fetch("/api/me", { credentials: "include" });
       return res.json() as Promise<AppSessionUser | null>;
     },
     enabled: !!authState.data?.user,
     staleTime: QUERY_STALE_TIME_MS,
+    retry: 4,
+    retryDelay: (attempt) => Math.min(1500, 400 * 2 ** attempt),
   });
+
+  const hasAuthUser = !!authState.data?.user;
+
+  const mePayload = meQuery.data;
+  const hasMe =
+    mePayload != null &&
+    typeof mePayload === "object" &&
+    "playerId" in mePayload;
 
   const loading =
     authState.isPending ||
-    (!!authState.data?.user &&
-      (meQuery.isPending || meQuery.isFetching) &&
-      meQuery.data === undefined);
+    (!hasAuthUser && !!authState.isRefetching) ||
+    (hasAuthUser &&
+      !meQuery.isError &&
+      !hasMe &&
+      (meQuery.isPending || meQuery.isFetching || meQuery.isLoading));
 
+  const authUser = authState.data?.user;
   const user =
-    authState.data?.user && meQuery.data
+    authUser && hasMe && mePayload && typeof mePayload === "object"
       ? {
-          id: meQuery.data.id,
-          playerId: meQuery.data.playerId,
-          name: meQuery.data.name ?? authState.data.user.name,
-          email: meQuery.data.email ?? authState.data.user.email,
-          image: meQuery.data.image ?? authState.data.user.image ?? null,
+          id: (mePayload as AppSessionUser).id,
+          playerId: (mePayload as AppSessionUser).playerId,
+          name: (mePayload as AppSessionUser).name ?? authUser.name,
+          email: (mePayload as AppSessionUser).email ?? authUser.email,
+          image:
+            (mePayload as AppSessionUser).image ?? authUser.image ?? null,
         }
       : null;
 

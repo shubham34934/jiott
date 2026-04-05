@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+  matchParticipantWithPlayerForApi,
+  mergeRankedRatingDeltasForMatches,
+} from "@/lib/match-participant-queries";
 
 /** Tag for `unstable_cache` / `revalidateTag` on `/api/matches` list payloads. */
 export const MATCH_LIST_CACHE_TAG = "match-list";
@@ -55,15 +59,7 @@ export async function getMatchesListData(params: MatchesListParams) {
   const matches = await prisma.match.findMany({
     where,
     include: {
-      participants: {
-        include: {
-          player: {
-            include: {
-              user: { select: { name: true, image: true } },
-            },
-          },
-        },
-      },
+      participants: matchParticipantWithPlayerForApi,
       sets: { orderBy: { setNumber: "asc" } },
     },
     orderBy: { createdAt: "desc" },
@@ -73,8 +69,10 @@ export async function getMatchesListData(params: MatchesListParams) {
 
   const hasMore = matches.length > limit;
   const pageMatches = hasMore ? matches.slice(0, limit) : matches;
+  const pageWithDeltas =
+    await mergeRankedRatingDeltasForMatches(pageMatches);
 
-  const matchIds = pageMatches.map((m) => m.id);
+  const matchIds = pageWithDeltas.map((m) => m.id);
   const tournamentLinks =
     matchIds.length > 0
       ? await prisma.tournamentMatch.findMany({
@@ -93,7 +91,7 @@ export async function getMatchesListData(params: MatchesListParams) {
     }
   }
 
-  const payload = pageMatches.map((m) => ({
+  const payload = pageWithDeltas.map((m) => ({
     ...m,
     isTournamentMatch: linkedSet.has(m.id),
     tournamentName: tournamentNameByMatchId.get(m.id) ?? null,
@@ -102,7 +100,7 @@ export async function getMatchesListData(params: MatchesListParams) {
   return {
     items: payload,
     hasMore,
-    nextOffset: offset + payload.length,
+    nextOffset: offset + pageWithDeltas.length,
     total,
   };
 }

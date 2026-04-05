@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:fix-columns-neon": "tsx scripts/apply-pending-db-columns-neon.ts",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "db:backfill-streaks": "tsx scripts/backfill-win-streaks.ts"

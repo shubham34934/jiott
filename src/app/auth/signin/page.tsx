@@ -2,6 +2,8 @@
 
 import { useState, Suspense } from "react";
 import { authClient } from "@/lib/auth-client";
+import { safeReturnPath } from "@/lib/safe-return-path";
+import { waitForAuthSessionClient } from "@/lib/wait-for-auth-session-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
@@ -11,7 +13,8 @@ import { JioTTAuthMark } from "@/components/JioTTLogo";
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const returnTo =
+    safeReturnPath(searchParams.get("callbackUrl")) ?? "/profile";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,9 +35,8 @@ function SignInForm() {
         password,
       });
 
-      setLoading(false);
-
       if (error) {
+        setLoading(false);
         const msg =
           typeof error === "object" && error !== null && "message" in error
             ? String((error as { message: string }).message)
@@ -49,8 +51,11 @@ function SignInForm() {
         return;
       }
 
-      router.push(callbackUrl);
-      router.refresh();
+      await waitForAuthSessionClient();
+      setLoading(false);
+      // Full navigation: `router.push` mounts before better-auth's session store refetches (it flips
+      // on a timeout after sign-in), so useSession() still looks logged out until reload.
+      window.location.assign(returnTo);
     } catch {
       setLoading(false);
       setError("Something went wrong. Please try again.");

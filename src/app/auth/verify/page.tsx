@@ -97,7 +97,7 @@ function VerifyForm() {
     }
 
     setVerified(true);
-    setTimeout(() => router.push("/auth/signin?callbackUrl=/"), 2000);
+    setTimeout(() => router.push("/auth/signin?callbackUrl=/profile"), 2000);
   };
 
   const handleResend = async () => {

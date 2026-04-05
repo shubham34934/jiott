@@ -9,14 +9,19 @@ import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
+import {
+  matchParticipantWithPlayerForApi,
+  mergeRankedRatingDeltasForMatch,
+} from "@/lib/match-participant-queries";
 
-/** Handles older Prisma payloads / DB rows where streak columns may be missing. */
-function winStreakBaselines(player: {
-  currentWinStreak?: number | null;
-  bestWinStreak?: number | null;
-}) {
-  const c = player.currentWinStreak;
-  const b = player.bestWinStreak;
+/** Reads streak fields when present on a `Player` row (may be omitted in slim queries). */
+function winStreakBaselines(player: object) {
+  const p = player as {
+    currentWinStreak?: number | null;
+    bestWinStreak?: number | null;
+  };
+  const c = p.currentWinStreak;
+  const b = p.bestWinStreak;
   return {
     current: typeof c === "number" && Number.isFinite(c) ? c : 0,
     best: typeof b === "number" && Number.isFinite(b) ? b : 0,
@@ -29,26 +34,20 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const match = await prisma.match.findUnique({
+  const matchRaw = await prisma.match.findUnique({
     where: { id },
     include: {
-      participants: {
-        include: {
-          player: {
-            include: {
-              user: { select: { name: true, image: true } },
-            },
-          },
-        },
-      },
+      participants: matchParticipantWithPlayerForApi,
       sets: { orderBy: { setNumber: "asc" } },
       eventLogs: { orderBy: { createdAt: "desc" } },
     },
   });
 
-  if (!match) {
+  if (!matchRaw) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
+
+  const match = await mergeRankedRatingDeltasForMatch(matchRaw);
 
   const tournamentSlot = await prisma.tournamentMatch.findFirst({
     where: { matchId: id },
@@ -173,7 +172,7 @@ async function completeMatch(matchId: string, userId: string) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
-      participants: { include: { player: true } },
+      participants: matchParticipantWithPlayerForApi,
       sets: true,
     },
   });

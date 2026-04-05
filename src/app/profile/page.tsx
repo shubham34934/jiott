@@ -40,7 +40,6 @@ export default function ProfilePage() {
     return (
       <div className="px-4 pt-8 flex flex-col items-center justify-center min-h-[60vh]">
         <JioTTAuthMark />
-        <Trophy size={48} className="text-primary mb-4" />
         <h2 className="text-xl font-bold mb-2 text-text-primary">Welcome to JioTT</h2>
         <p className="text-sm text-neutral mb-6 text-center">
           Sign in to track your matches and compete on the leaderboard

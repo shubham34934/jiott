@@ -6,6 +6,10 @@ import {
   getMatchesListData,
   MATCH_LIST_CACHE_TAG,
 } from "@/lib/get-matches-list";
+import {
+  matchParticipantWithPlayerForApi,
+  mergeRankedRatingDeltasForMatch,
+} from "@/lib/match-participant-queries";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -74,7 +78,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const match = await prisma.match.create({
+  const created = await prisma.match.create({
     data: {
       type,
       totalSets: totalSets || 3,
@@ -96,23 +100,17 @@ export async function POST(req: Request) {
       },
     },
     include: {
-      participants: {
-        include: {
-          player: {
-            include: {
-              user: { select: { name: true, image: true } },
-            },
-          },
-        },
-      },
+      participants: matchParticipantWithPlayerForApi,
       sets: { orderBy: { setNumber: "asc" } },
     },
   });
 
+  const match = await mergeRankedRatingDeltasForMatch(created);
+
   await prisma.eventLog.create({
     data: {
       entityType: "Match",
-      entityId: match.id,
+      entityId: created.id,
       action: "CREATED",
       newValue: { type, playerIds, totalSets, pointsPerSet, isFriendly: isFriendly || false },
       updatedBy: actor.prismaUserId,

@@ -43,7 +43,11 @@ export async function getPlayersListData(params: PlayersListParams) {
 
   const players = await prisma.player.findMany({
     where,
-    include: {
+    select: {
+      id: true,
+      rating: true,
+      matchesPlayed: true,
+      matchesWon: true,
       user: { select: { name: true, email: true, image: true } },
     },
     orderBy,

@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, Trophy } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Trophy } from "lucide-react";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
 import { RatingDeltaBadge } from "@/components/RatingDeltaBadge";
 import { formatDisplayDate } from "@/lib/formatDisplayDate";
@@ -117,6 +117,11 @@ export function MatchCard({
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
               <CheckCircle2 size={14} className="text-success" />
               Completed
+            </span>
+          ) : status === "DISPUTED" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning bg-warning/15 rounded-full px-2.5 py-1">
+              <AlertTriangle size={14} className="shrink-0" />
+              Disputed
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">

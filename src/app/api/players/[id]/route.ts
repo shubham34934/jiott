@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  isPrismaMissingColumnError,
+  matchParticipantWithPlayerForApi,
+  mergeRankedRatingDeltasForMatches,
+} from "@/lib/match-participant-queries";
+
+const tournamentTeamPlayerSelect = {
+  select: {
+    id: true,
+    user: { select: { name: true, image: true } },
+  },
+} as const;
 
 export async function GET(
   _req: Request,
@@ -9,22 +21,43 @@ export async function GET(
 
   const player = await prisma.player.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      userId: true,
+      rating: true,
+      matchesPlayed: true,
+      matchesWon: true,
+      createdAt: true,
+      updatedAt: true,
       user: { select: { name: true, email: true, image: true } },
       matchParticipations: {
-        include: {
+        select: {
+          id: true,
+          matchId: true,
+          playerId: true,
+          team: true,
           match: {
-            include: {
-              participants: {
-                include: {
-                  player: {
-                    include: {
-                      user: { select: { name: true, image: true } },
-                    },
-                  },
+            select: {
+              id: true,
+              type: true,
+              status: true,
+              totalSets: true,
+              pointsPerSet: true,
+              isFriendly: true,
+              createdBy: true,
+              createdAt: true,
+              updatedAt: true,
+              participants: matchParticipantWithPlayerForApi,
+              sets: {
+                orderBy: { setNumber: "asc" },
+                select: {
+                  id: true,
+                  matchId: true,
+                  setNumber: true,
+                  teamAScore: true,
+                  teamBScore: true,
                 },
               },
-              sets: { orderBy: { setNumber: "asc" } },
             },
           },
         },
@@ -73,10 +106,15 @@ export async function GET(
     }
   }
 
+  const participationMatches = player.matchParticipations.map((mp) => mp.match);
+  const matchesWithDeltas =
+    await mergeRankedRatingDeltasForMatches(participationMatches);
+  const matchById = new Map(matchesWithDeltas.map((m) => [m.id, m]));
+
   const matchParticipations = player.matchParticipations.map((mp) => ({
     ...mp,
     match: {
-      ...mp.match,
+      ...matchById.get(mp.match.id)!,
       isTournamentMatch: linkedSet.has(mp.match.id),
       tournamentName: tournamentNameByMatchId.get(mp.match.id) ?? null,
     },
@@ -91,22 +129,14 @@ export async function GET(
         include: {
           winnerTeam: {
             include: {
-              player1: {
-                include: { user: { select: { name: true, image: true } } },
-              },
-              player2: {
-                include: { user: { select: { name: true, image: true } } },
-              },
+              player1: tournamentTeamPlayerSelect,
+              player2: tournamentTeamPlayerSelect,
             },
           },
           runnerUpTeam: {
             include: {
-              player1: {
-                include: { user: { select: { name: true, image: true } } },
-              },
-              player2: {
-                include: { user: { select: { name: true, image: true } } },
-              },
+              player1: tournamentTeamPlayerSelect,
+              player2: tournamentTeamPlayerSelect,
             },
           },
         },
@@ -115,8 +145,25 @@ export async function GET(
     orderBy: { tournament: { createdAt: "desc" } },
   });
 
+  let currentWinStreak = 0;
+  let bestWinStreak = 0;
+  try {
+    const streakRow = await prisma.player.findUnique({
+      where: { id },
+      select: { currentWinStreak: true, bestWinStreak: true },
+    });
+    if (streakRow) {
+      currentWinStreak = streakRow.currentWinStreak ?? 0;
+      bestWinStreak = streakRow.bestWinStreak ?? 0;
+    }
+  } catch (e) {
+    if (!isPrismaMissingColumnError(e)) throw e;
+  }
+
   return NextResponse.json({
     ...player,
+    currentWinStreak,
+    bestWinStreak,
     _rank,
     matchParticipations,
     tournamentTeams,
