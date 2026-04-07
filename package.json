@@ -15,7 +15,8 @@
     "db:fix-columns-neon": "tsx scripts/apply-pending-db-columns-neon.ts",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "db:backfill-streaks": "tsx scripts/backfill-win-streaks.ts"
+    "db:backfill-streaks": "tsx scripts/backfill-win-streaks.ts",
+    "db:repair-ranked-stats": "tsx scripts/repair-ranked-stats.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
