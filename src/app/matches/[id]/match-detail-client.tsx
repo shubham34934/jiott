@@ -1,19 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Medal } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { SetScoreRow } from "@/components/SetScoreRow";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDisplayDate } from "@/lib/formatDisplayDate";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
 import { RatingDeltaBadge } from "@/components/RatingDeltaBadge";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
-import { safeReturnPath } from "@/lib/safe-return-path";
 
 interface Participant {
   team: "A" | "B";
@@ -64,7 +60,6 @@ interface MatchData {
   eventLogs: EventLogEntry[];
   createdAt: string;
   tournamentContext?: TournamentContext | null;
-  canDelete?: boolean;
 }
 
 function MatchBackLink({
@@ -133,8 +128,6 @@ export function MatchDetailPageClient({
   returnTo: string | null;
 }) {
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const [deleteMatchOpen, setDeleteMatchOpen] = useState(false);
 
   const { data: match, isLoading } = useQuery<MatchData>({
     queryKey: ["match", id],
@@ -254,31 +247,6 @@ export function MatchDetailPageClient({
       for (const p of m?.participants ?? []) {
         queryClient.invalidateQueries({ queryKey: ["player", p.player.id] });
       }
-    },
-  });
-
-  const deleteMatch = useMutation({
-    mutationFn: async () => {
-      const r = await fetch(`/api/matches/${id}`, { method: "DELETE" });
-      const body = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        throw new Error(
-          typeof body.error === "string" ? body.error : "Failed to delete match"
-        );
-      }
-      return body;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["matches"] });
-      const m = queryClient.getQueryData<MatchData>(["match", id]);
-      if (m?.tournamentContext?.id) {
-        queryClient.invalidateQueries({
-          queryKey: ["tournament", m.tournamentContext.id],
-        });
-      }
-      const params = new URLSearchParams(window.location.search);
-      const to = safeReturnPath(params.get("returnTo"));
-      router.push(to ?? "/matches");
     },
   });
 
@@ -486,31 +454,6 @@ export function MatchDetailPageClient({
               : "Complete Match"}
           </Button>
         )}
-
-        {match.canDelete && (
-          <Button
-            fullWidth
-            variant="secondary"
-            size="lg"
-            className="mb-6 border-danger/45 text-danger hover:bg-danger/12"
-            onClick={() => setDeleteMatchOpen(true)}
-            disabled={deleteMatch.isPending}
-          >
-            {deleteMatch.isPending ? "Deleting..." : "Delete match"}
-          </Button>
-        )}
-
-        <ConfirmDialog
-          open={deleteMatchOpen}
-          onClose={() => setDeleteMatchOpen(false)}
-          title="Delete this match?"
-          description="This match will be removed permanently. This cannot be undone."
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-          variant="danger"
-          isPending={deleteMatch.isPending}
-          onConfirm={() => deleteMatch.mutate()}
-        />
 
         <h2 className="text-lg font-bold mb-3 text-text-primary">Event History</h2>
         <div className="space-y-0 mb-8">

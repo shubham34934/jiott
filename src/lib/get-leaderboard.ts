@@ -5,8 +5,8 @@ export const LEADERBOARD_CACHE_TAG = "leaderboard-list";
 
 /**
  * Leaderboard reads denormalized `Player.rating`, `matchesPlayed`, and `matchesWon`.
- * Those fields are updated only when a non-friendly match is completed
- * (`PATCH .../matches/[id]` action `complete`), not on every request.
+ * Those fields are rewritten from a full ranked-history replay whenever a non-friendly
+ * match is completed or deleted (`applyReplayedRankedStats`), not on every request.
  */
 export async function getLeaderboardPlayersData() {
   return prisma.player.findMany({

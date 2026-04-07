@@ -5,28 +5,14 @@ import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
 import { LEADERBOARD_CACHE_TAG } from "@/lib/get-leaderboard";
 import { PLAYERS_LIST_CACHE_TAG } from "@/lib/get-players-list";
 import { getApiActor } from "@/lib/get-api-actor";
-import { calculateEloChange, calculateTeamRating } from "@/lib/elo";
 import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
+import { applyReplayedRankedStats } from "@/lib/replay-ranked-stats";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
 import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
 import {
   matchParticipantWithPlayerForApi,
   mergeRankedRatingDeltasForMatch,
 } from "@/lib/match-participant-queries";
-
-/** Reads streak fields when present on a `Player` row (may be omitted in slim queries). */
-function winStreakBaselines(player: object) {
-  const p = player as {
-    currentWinStreak?: number | null;
-    bestWinStreak?: number | null;
-  };
-  const c = p.currentWinStreak;
-  const b = p.bestWinStreak;
-  return {
-    current: typeof c === "number" && Number.isFinite(c) ? c : 0,
-    best: typeof b === "number" && Number.isFinite(b) ? b : 0,
-  };
-}
 
 export async function GET(
   _req: Request,
@@ -97,14 +83,10 @@ export async function GET(
     updatedByUser: { name: nameByUserId.get(log.updatedBy) ?? null },
   }));
 
-  const actor = await getApiActor();
-  const canDelete = actor?.prismaUserId === match.createdBy;
-
   return NextResponse.json({
     ...match,
     eventLogs,
     tournamentContext,
-    canDelete,
   });
 }
 
@@ -121,7 +103,7 @@ export async function DELETE(
 
   const match = await prisma.match.findUnique({
     where: { id },
-    select: { id: true, createdBy: true },
+    select: { id: true, createdBy: true, isFriendly: true },
   });
 
   if (!match) {
@@ -132,13 +114,37 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await prisma.tournamentMatch.updateMany({
+  const tournamentLink = await prisma.tournamentMatch.findFirst({
     where: { matchId: id },
-    data: { matchId: null },
+    select: { id: true },
   });
+  if (tournamentLink) {
+    return NextResponse.json(
+      {
+        error:
+          "This match is part of a tournament and cannot be deleted.",
+      },
+      { status: 400 }
+    );
+  }
 
-  await prisma.match.delete({
-    where: { id },
+  const participantRows = await prisma.matchParticipant.findMany({
+    where: { matchId: id },
+    select: { playerId: true },
+  });
+  const deletedMatchPlayerIds = [
+    ...new Set(participantRows.map((p) => p.playerId)),
+  ];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.match.delete({
+      where: { id },
+    });
+
+    await applyReplayedRankedStats(tx, {
+      alsoResetPlayerIds:
+        match.isFriendly === false ? deletedMatchPlayerIds : undefined,
+    });
   });
 
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
@@ -203,9 +209,6 @@ async function completeMatch(matchId: string, userId: string) {
   const { winningTeam, teamAWins, teamBWins } = outcome;
   const losingTeam = winningTeam === "A" ? "B" : "A";
 
-  const winners = match.participants.filter((p) => p.team === winningTeam);
-  const losers = match.participants.filter((p) => p.team === losingTeam);
-
   await prisma.$transaction(async (tx) => {
     await tx.match.update({
       where: { id: matchId },
@@ -213,60 +216,7 @@ async function completeMatch(matchId: string, userId: string) {
     });
 
     if (!match.isFriendly) {
-      const winnerRatings = winners.map((w) => w.player.rating);
-      const loserRatings = losers.map((l) => l.player.rating);
-
-      const avgWinnerRating = calculateTeamRating(winnerRatings);
-      const avgLoserRating = calculateTeamRating(loserRatings);
-
-      const { winnerNew, loserNew } = calculateEloChange(
-        avgWinnerRating,
-        avgLoserRating
-      );
-
-      const winnerDelta = winnerNew - avgWinnerRating;
-      const loserDelta = loserNew - avgLoserRating;
-
-      for (const winner of winners) {
-        const { current: prevCurrent, best: prevBest } = winStreakBaselines(
-          winner.player
-        );
-        const nextCurrent = prevCurrent + 1;
-        const nextBest = Math.max(prevBest, nextCurrent);
-        await tx.matchParticipant.update({
-          where: {
-            matchId_playerId: { matchId, playerId: winner.playerId },
-          },
-          data: { rankedRatingDelta: winnerDelta },
-        });
-        await tx.player.update({
-          where: { id: winner.playerId },
-          data: {
-            rating: { increment: winnerDelta },
-            matchesPlayed: { increment: 1 },
-            matchesWon: { increment: 1 },
-            currentWinStreak: nextCurrent,
-            bestWinStreak: nextBest,
-          },
-        });
-      }
-
-      for (const loser of losers) {
-        await tx.matchParticipant.update({
-          where: {
-            matchId_playerId: { matchId, playerId: loser.playerId },
-          },
-          data: { rankedRatingDelta: loserDelta },
-        });
-        await tx.player.update({
-          where: { id: loser.playerId },
-          data: {
-            rating: { increment: loserDelta },
-            matchesPlayed: { increment: 1 },
-            currentWinStreak: 0,
-          },
-        });
-      }
+      await applyReplayedRankedStats(tx);
     }
   });
 

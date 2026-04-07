@@ -12,32 +12,10 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { getCompletedMatchOutcome } from "../src/lib/matchWinningTeam";
-import { calculateEloChange, calculateTeamRating } from "../src/lib/elo";
-
-type PlayerState = {
-  rating: number;
-  matchesPlayed: number;
-  matchesWon: number;
-  currentWinStreak: number;
-  bestWinStreak: number;
-};
-
-function initialState(): PlayerState {
-  return {
-    rating: 1000,
-    matchesPlayed: 0,
-    matchesWon: 0,
-    currentWinStreak: 0,
-    bestWinStreak: 0,
-  };
-}
-
-function winStreakBaselines(p: PlayerState) {
-  return {
-    current: p.currentWinStreak,
-    best: p.bestWinStreak,
-  };
-}
+import {
+  applyReplayedRankedStats,
+  computeRankedStatsReplay,
+} from "../src/lib/replay-ranked-stats";
 
 async function main() {
   const apply = process.argv.includes("--apply");
@@ -50,18 +28,6 @@ async function main() {
     },
     orderBy: { createdAt: "asc" },
   });
-
-  const stateByPlayer = new Map<string, PlayerState>();
-  const deltasByKey = new Map<string, number>(); // `${matchId}:${playerId}`
-
-  function ensurePlayer(id: string): PlayerState {
-    let s = stateByPlayer.get(id);
-    if (!s) {
-      s = initialState();
-      stateByPlayer.set(id, s);
-    }
-    return s;
-  }
 
   const completedLogs = await prisma.eventLog.findMany({
     where: {
@@ -125,52 +91,25 @@ async function main() {
         reason: "Event log winningTeam differs from recomputed outcome",
       });
     }
-
-    const { winningTeam } = outcome;
-    const losingTeam = winningTeam === "A" ? "B" : "A";
-    const winners = match.participants.filter((p) => p.team === winningTeam);
-    const losers = match.participants.filter((p) => p.team === losingTeam);
-
-    const winnerRatings = winners.map((w) => ensurePlayer(w.playerId).rating);
-    const loserRatings = losers.map((l) => ensurePlayer(l.playerId).rating);
-
-    const avgWinnerRating = calculateTeamRating(winnerRatings);
-    const avgLoserRating = calculateTeamRating(loserRatings);
-
-    const { winnerNew, loserNew } = calculateEloChange(
-      avgWinnerRating,
-      avgLoserRating
-    );
-
-    const winnerDelta = winnerNew - avgWinnerRating;
-    const loserDelta = loserNew - avgLoserRating;
-
-    for (const w of winners) {
-      const pid = w.playerId;
-      const p = ensurePlayer(pid);
-      const { current: prevCurrent, best: prevBest } = winStreakBaselines(p);
-      const nextCurrent = prevCurrent + 1;
-      const nextBest = Math.max(prevBest, nextCurrent);
-
-      p.rating += winnerDelta;
-      p.matchesPlayed += 1;
-      p.matchesWon += 1;
-      p.currentWinStreak = nextCurrent;
-      p.bestWinStreak = nextBest;
-
-      deltasByKey.set(`${match.id}:${pid}`, winnerDelta);
-    }
-
-    for (const l of losers) {
-      const pid = l.playerId;
-      const p = ensurePlayer(pid);
-      p.rating += loserDelta;
-      p.matchesPlayed += 1;
-      p.currentWinStreak = 0;
-
-      deltasByKey.set(`${match.id}:${pid}`, loserDelta);
-    }
   }
+
+  const rows = matches.map((m) => ({
+    id: m.id,
+    totalSets: m.totalSets,
+    pointsPerSet: m.pointsPerSet,
+    createdAt: m.createdAt,
+    participants: m.participants.map((p) => ({
+      playerId: p.playerId,
+      team: p.team,
+    })),
+    sets: m.sets.map((s) => ({
+      teamAScore: s.teamAScore,
+      teamBScore: s.teamBScore,
+    })),
+  }));
+
+  const { playerStates: stateByPlayer, deltasByKey } =
+    computeRankedStatsReplay(rows);
 
   const rankedPlayerIds = new Set(stateByPlayer.keys());
 
@@ -289,40 +228,7 @@ async function main() {
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const pid of rankedPlayerIds) {
-      const s = stateByPlayer.get(pid)!;
-      await tx.player.update({
-        where: { id: pid },
-        data: {
-          rating: s.rating,
-          matchesPlayed: s.matchesPlayed,
-          matchesWon: s.matchesWon,
-          currentWinStreak: s.currentWinStreak,
-          bestWinStreak: s.bestWinStreak,
-        },
-      });
-    }
-
-    for (const match of matches) {
-      const outcome = getCompletedMatchOutcome({
-        sets: match.sets,
-        totalSets: match.totalSets,
-        pointsPerSet: match.pointsPerSet,
-      });
-      if (!outcome) continue;
-
-      for (const part of match.participants) {
-        const key = `${match.id}:${part.playerId}`;
-        const delta = deltasByKey.get(key);
-        if (delta === undefined) continue;
-        await tx.matchParticipant.update({
-          where: {
-            matchId_playerId: { matchId: match.id, playerId: part.playerId },
-          },
-          data: { rankedRatingDelta: delta },
-        });
-      }
-    }
+    await applyReplayedRankedStats(tx);
   });
 
   const decidedCount = matches.filter(
