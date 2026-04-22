@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 const MATCHES_PAGE_SIZE = 20;
@@ -16,7 +17,7 @@ export const dashboardMatchesPrefetch = {
   queryKey: ["matches", "dashboard", "recent", "exclude-tournament"] as const,
   staleTime: QUERY_STALE_TIME_MS,
   queryFn: () =>
-    fetch("/api/matches?limit=5&offset=0&tournament=exclude").then((r) => {
+    apiGet("/api/matches?limit=5&offset=0&tournament=exclude").then((r) => {
       if (!r.ok) throw new Error("Failed to prefetch matches");
       return r.json();
     }),
@@ -36,7 +37,7 @@ export function prefetchMatchesListFirstPage(queryClient: QueryClient) {
       params.set("offset", String(pageParam));
       params.set("limit", String(MATCHES_PAGE_SIZE));
       params.set("tournament", "exclude");
-      const r = await fetch(`/api/matches?${params}`);
+      const r = await apiGet(`/api/matches?${params}`);
       if (!r.ok) throw new Error("Failed to prefetch matches list");
       return r.json();
     },
@@ -59,7 +60,7 @@ export function prefetchPlayersListFirstPage(queryClient: QueryClient) {
       params.set("offset", String(pageParam));
       params.set("limit", String(PLAYERS_PAGE_SIZE));
       params.set("sortBy", "rating");
-      const r = await fetch(`/api/players?${params}`);
+      const r = await apiGet(`/api/players?${params}`);
       if (!r.ok) throw new Error("Failed to prefetch players");
       return r.json();
     },

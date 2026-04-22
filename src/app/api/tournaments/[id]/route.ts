@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiActor } from "@/lib/get-api-actor";
 import { TOURNAMENTS_LIST_CACHE_TAG } from "@/lib/get-tournaments-list";
 import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
+import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
 
 const tournamentInclude = {
   winnerTeam: {
@@ -119,7 +120,10 @@ export async function GET(
   const actor = await getApiActor();
   const canDelete = actor?.prismaUserId === tournament.createdBy;
 
-  return NextResponse.json({ ...tournament, canDelete });
+  return NextResponse.json(
+    { ...tournament, canDelete },
+    { headers: JSON_NO_STORE_HEADERS }
+  );
 }
 
 export async function DELETE(

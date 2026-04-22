@@ -13,6 +13,9 @@ import {
   matchParticipantWithPlayerForApi,
   mergeRankedRatingDeltasForMatch,
 } from "@/lib/match-participant-queries";
+import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
+
+export const maxDuration = 60;
 
 export async function GET(
   _req: Request,
@@ -83,11 +86,14 @@ export async function GET(
     updatedByUser: { name: nameByUserId.get(log.updatedBy) ?? null },
   }));
 
-  return NextResponse.json({
-    ...match,
-    eventLogs,
-    tournamentContext,
-  });
+  return NextResponse.json(
+    {
+      ...match,
+      eventLogs,
+      tournamentContext,
+    },
+    { headers: JSON_NO_STORE_HEADERS }
+  );
 }
 
 export async function DELETE(
@@ -136,16 +142,16 @@ export async function DELETE(
     ...new Set(participantRows.map((p) => p.playerId)),
   ];
 
-  await prisma.$transaction(async (tx) => {
-    await tx.match.delete({
-      where: { id },
-    });
+  await prisma.match.delete({ where: { id } });
 
-    await applyReplayedRankedStats(tx, {
-      alsoResetPlayerIds:
-        match.isFriendly === false ? deletedMatchPlayerIds : undefined,
-    });
-  });
+  await prisma.$transaction(
+    (tx) =>
+      applyReplayedRankedStats(tx, {
+        alsoResetPlayerIds:
+          match.isFriendly === false ? deletedMatchPlayerIds : undefined,
+      }),
+    { timeout: 30_000, maxWait: 10_000 }
+  );
 
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
   revalidateTag(LEADERBOARD_CACHE_TAG, "max");
@@ -187,6 +193,20 @@ async function completeMatch(matchId: string, userId: string) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
+  const actorPlayer = await prisma.player.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  const isParticipant =
+    actorPlayer != null &&
+    match.participants.some((p) => p.player.id === actorPlayer.id);
+  if (!isParticipant) {
+    return NextResponse.json(
+      { error: "Only match players can complete this match." },
+      { status: 403 }
+    );
+  }
+
   if (match.status === "COMPLETED") {
     return NextResponse.json(
       { error: "Match already completed" },
@@ -209,16 +229,17 @@ async function completeMatch(matchId: string, userId: string) {
   const { winningTeam, teamAWins, teamBWins } = outcome;
   const losingTeam = winningTeam === "A" ? "B" : "A";
 
-  await prisma.$transaction(async (tx) => {
-    await tx.match.update({
-      where: { id: matchId },
-      data: { status: "COMPLETED" },
-    });
-
-    if (!match.isFriendly) {
-      await applyReplayedRankedStats(tx);
-    }
+  await prisma.match.update({
+    where: { id: matchId },
+    data: { status: "COMPLETED" },
   });
+
+  if (!match.isFriendly) {
+    await prisma.$transaction((tx) => applyReplayedRankedStats(tx), {
+      timeout: 30_000,
+      maxWait: 10_000,
+    });
+  }
 
   await prisma.eventLog.create({
     data: {

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sS -w '\\\\n---HTTP:%{http_code}\\\\n' https://jiott-eight.vercel.app/api/me -b __Secure-authjs.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiY0JPY3hTYkF3LWdpRnNLRjFpYmExUGx4dlU1TE9BQVZCRTBWZjlTZkltcHZrRDZXc1RXa2g3RjRiU1dxNFhhTU5MTmVoZ2pYR1RGNHlxbzdSbF9wNUEifQ..WH-27V7jvvCKuCxGMoaAOQ.jYzar8Ar_EyryV5Ymv2zQB6HMDLuv5xZhF_uMuwVRxY1spjMTu9iBuyl20PuqOskGCOow0VHR_Xowu3XG3eaW-ntyVLkh--I69q-GEu2fIVVt4FwQsoJ9AbWOkrEXHOEMN2nQf2Ix45JMJfrMNnPTj3PZ-hw21wpzA5yUgxYdSmRxKx3QGS1o_8SLUe1_gak5RIae-Ij_RjBr_ugTNT1GlPPraujZSB8EopiNiuL-oSCyNWbA3JK3osQ1uLAv93l__natodhGBXeZ361Fri0oljKS5f_416k4Xhsmg815kQ5kWwiITtCreMpwIia4qrkbCPV38tTflID0Rt99QkqIg.73nN1G3wZWA9HUEBxSPlibI3FmRYKeZYUDoKwykl5LU)",
+      "Bash(vercel logs *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

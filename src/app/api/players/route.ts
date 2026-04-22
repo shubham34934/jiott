@@ -3,6 +3,7 @@ import {
   getPlayersListCached,
   parsePlayersListSort,
 } from "@/lib/get-players-list";
+import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 1000;
@@ -26,5 +27,5 @@ export async function GET(request: Request) {
   const params = { sortBy, q, limit, offset };
   const body = await getPlayersListCached(params);
 
-  return NextResponse.json(body);
+  return NextResponse.json(body, { headers: JSON_NO_STORE_HEADERS });
 }

@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { signOut as nextSignOut, useSession } from "next-auth/react";
+import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export type AppSessionUser = {
@@ -20,7 +21,7 @@ export function useAppSession() {
   const meQuery = useQuery({
     queryKey: ["me", authData?.user?.id],
     queryFn: async () => {
-      const res = await fetch("/api/me", { credentials: "include" });
+      const res = await apiGet("/api/me", { credentials: "include" });
       return res.json() as Promise<AppSessionUser | null>;
     },
     enabled: !!authData?.user?.id,

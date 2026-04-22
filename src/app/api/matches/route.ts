@@ -10,6 +10,7 @@ import {
   matchParticipantWithPlayerForApi,
   mergeRankedRatingDeltasForMatch,
 } from "@/lib/match-participant-queries";
+import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
     { revalidate: 30, tags: [MATCH_LIST_CACHE_TAG] }
   )();
 
-  return NextResponse.json(body);
+  return NextResponse.json(body, { headers: JSON_NO_STORE_HEADERS });
 }
 
 export async function POST(req: Request) {

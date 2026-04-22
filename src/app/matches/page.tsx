@@ -10,6 +10,7 @@ import type {
   MatchFormatTab,
   MatchSourceTab,
 } from "@/lib/matchFilters";
+import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 const MATCHES_PAGE_SIZE = 20;
@@ -61,7 +62,7 @@ export default function MatchesPage() {
       }
       const qs = params.toString();
       const url = `/api/matches?${qs}`;
-      const r = await fetch(url);
+      const r = await apiGet(url);
       return r.json();
     },
     getNextPageParam: (last) => (last.hasMore ? last.nextOffset : undefined),

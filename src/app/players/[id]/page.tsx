@@ -15,6 +15,7 @@ import {
   type MatchFormatTab,
   type MatchSourceTab,
 } from "@/lib/matchFilters";
+import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export default function PlayerProfilePage({
@@ -31,7 +32,7 @@ export default function PlayerProfilePage({
 
   const { data: player, isLoading } = useQuery({
     queryKey: ["player", id],
-    queryFn: () => fetch(`/api/players/${id}`).then((r) => r.json()),
+    queryFn: () => apiGet(`/api/players/${id}`).then((r) => r.json()),
     staleTime: QUERY_STALE_TIME_MS,
   });
 

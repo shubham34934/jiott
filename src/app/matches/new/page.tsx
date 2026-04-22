@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, User, Users, Search, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
@@ -20,6 +20,7 @@ interface PlayerOption {
 
 export default function NewMatchPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(1);
   const [matchType, setMatchType] = useState<MatchType | null>(null);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
@@ -47,6 +48,8 @@ export default function NewMatchPage() {
         body: JSON.stringify(data),
       }).then((r) => r.json()),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      router.refresh();
       router.push(`/matches/${data.id}`);
     },
   });

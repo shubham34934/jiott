@@ -6,10 +6,11 @@ import {
   getTournamentsListCached,
   TOURNAMENTS_LIST_CACHE_TAG,
 } from "@/lib/get-tournaments-list";
+import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
 
 export async function GET() {
   const tournaments = await getTournamentsListCached();
-  return NextResponse.json(tournaments);
+  return NextResponse.json(tournaments, { headers: JSON_NO_STORE_HEADERS });
 }
 
 export async function POST(req: Request) {

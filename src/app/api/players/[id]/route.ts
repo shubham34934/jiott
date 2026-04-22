@@ -5,6 +5,7 @@ import {
   matchParticipantWithPlayerForApi,
   mergeRankedRatingDeltasForMatches,
 } from "@/lib/match-participant-queries";
+import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
 
 const tournamentTeamPlayerSelect = {
   select: {
@@ -160,12 +161,15 @@ export async function GET(
     if (!isPrismaMissingColumnError(e)) throw e;
   }
 
-  return NextResponse.json({
-    ...player,
-    currentWinStreak,
-    bestWinStreak,
-    _rank,
-    matchParticipations,
-    tournamentTeams,
-  });
+  return NextResponse.json(
+    {
+      ...player,
+      currentWinStreak,
+      bestWinStreak,
+      _rank,
+      matchParticipations,
+      tournamentTeams,
+    },
+    { headers: JSON_NO_STORE_HEADERS }
+  );
 }

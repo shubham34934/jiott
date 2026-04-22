@@ -41,6 +41,22 @@ export async function PATCH(
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
+  const actorPlayer = await prisma.player.findUnique({
+    where: { userId: actor.prismaUserId },
+    select: { id: true },
+  });
+  const participantCount = actorPlayer
+    ? await prisma.matchParticipant.count({
+        where: { matchId, playerId: actorPlayer.id },
+      })
+    : 0;
+  if (participantCount === 0) {
+    return NextResponse.json(
+      { error: "Only match players can update scores." },
+      { status: 403 }
+    );
+  }
+
   if (match.status === "COMPLETED") {
     return NextResponse.json(
       { error: "Cannot update completed match." },

@@ -5,6 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowDownWideNarrow, Search } from "lucide-react";
 import { InfiniteScrollSentinel } from "@/components/InfiniteScrollSentinel";
 import { PlayerCard } from "@/components/PlayerCard";
+import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 type PlayerSort = "rating" | "matchesPlayed" | "matchesWon";
@@ -59,7 +60,7 @@ export default function PlayersPage() {
       if (debouncedSearch.length > 0) {
         params.set("q", debouncedSearch);
       }
-      const r = await fetch(`/api/players?${params}`);
+      const r = await apiGet(`/api/players?${params}`);
       return r.json();
     },
     getNextPageParam: (last) => (last.hasMore ? last.nextOffset : undefined),

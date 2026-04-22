@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, User, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
@@ -25,6 +25,7 @@ interface TeamEntry {
 
 export default function NewTournamentPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
   const [matchType, setMatchType] = useState<"SINGLES" | "DOUBLES">("SINGLES");
@@ -78,6 +79,9 @@ export default function NewTournamentPage() {
       return tournament;
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      router.refresh();
       router.push(`/tournaments/${data.id}`);
     },
   });

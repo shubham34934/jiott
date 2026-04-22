@@ -3,6 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Medal } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { apiGet } from "@/lib/api-client";
 import { SetScoreRow } from "@/components/SetScoreRow";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
@@ -10,6 +12,7 @@ import { formatDisplayDate } from "@/lib/formatDisplayDate";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
 import { RatingDeltaBadge } from "@/components/RatingDeltaBadge";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
+import { useAppSession } from "@/hooks/use-app-session";
 
 interface Participant {
   team: "A" | "B";
@@ -128,10 +131,13 @@ export function MatchDetailPageClient({
   returnTo: string | null;
 }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { data: session } = useAppSession();
+  const currentPlayerId = session?.user?.playerId ?? null;
 
   const { data: match, isLoading } = useQuery<MatchData>({
     queryKey: ["match", id],
-    queryFn: () => fetch(`/api/matches/${id}`).then((r) => r.json()),
+    queryFn: () => apiGet(`/api/matches/${id}`).then((r) => r.json()),
     staleTime: QUERY_STALE_TIME_MS,
   });
 
@@ -203,6 +209,8 @@ export function MatchDetailPageClient({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["match", id] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      router.refresh();
     },
   });
 
@@ -236,9 +244,10 @@ export function MatchDetailPageClient({
       }
     },
     onSuccess: () => {
+      const m = queryClient.getQueryData<MatchData>(["match", id]);
       queryClient.invalidateQueries({ queryKey: ["match", id] });
       queryClient.invalidateQueries({ queryKey: ["matches"] });
-      const m = queryClient.getQueryData<MatchData>(["match", id]);
+      queryClient.invalidateQueries({ queryKey: ["players"] });
       if (m?.tournamentContext?.id) {
         queryClient.invalidateQueries({
           queryKey: ["tournament", m.tournamentContext.id],
@@ -247,6 +256,7 @@ export function MatchDetailPageClient({
       for (const p of m?.participants ?? []) {
         queryClient.invalidateQueries({ queryKey: ["player", p.player.id] });
       }
+      router.refresh();
     },
   });
 
@@ -296,6 +306,10 @@ export function MatchDetailPageClient({
     const requiredWins = Math.ceil(match.totalSets / 2);
     return teamASetsWon >= requiredWins || teamBSetsWon >= requiredWins;
   };
+
+  const isParticipant =
+    currentPlayerId != null &&
+    match.participants.some((p) => p.player.id === currentPlayerId);
 
   return (
     <div>
@@ -433,7 +447,7 @@ export function MatchDetailPageClient({
               pointsPerSet={match.pointsPerSet}
               teamAName={teamANames}
               teamBName={teamBNames}
-              editable={match.status === "ONGOING"}
+              editable={match.status === "ONGOING" && isParticipant}
               onSaveScore={(a, b) =>
                 handleSaveScore(set.setNumber, a, b)
               }
@@ -441,7 +455,7 @@ export function MatchDetailPageClient({
           ))}
         </div>
 
-        {match.status === "ONGOING" && canComplete() && (
+        {match.status === "ONGOING" && canComplete() && isParticipant && (
           <Button
             fullWidth
             size="lg"

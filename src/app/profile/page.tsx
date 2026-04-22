@@ -15,6 +15,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
 import { useAppSession } from "@/hooks/use-app-session";
+import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
 export default function ProfilePage() {
@@ -23,7 +24,7 @@ export default function ProfilePage() {
   const { data: player } = useQuery({
     queryKey: ["player", session?.user?.playerId],
     queryFn: () =>
-      fetch(`/api/players/${session?.user?.playerId}`).then((r) => r.json()),
+      apiGet(`/api/players/${session?.user?.playerId}`).then((r) => r.json()),
     enabled: !!session?.user?.playerId,
     staleTime: QUERY_STALE_TIME_MS,
   });
