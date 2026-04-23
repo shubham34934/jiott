@@ -9,7 +9,6 @@ export async function POST() {
   }
 
   const result = await sendPushToUser(actor.prismaUserId, {
-    title: "JioTT test",
     body: "Push notifications are working.",
     url: "/profile",
   });

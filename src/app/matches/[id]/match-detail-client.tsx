@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ChevronRight, Loader2, Medal } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Check, ChevronRight, Loader2, Medal, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api-client";
@@ -63,6 +64,46 @@ interface MatchData {
   eventLogs: EventLogEntry[];
   createdAt: string;
   tournamentContext?: TournamentContext | null;
+}
+
+function ShareButton({ id, text }: { id: string; text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleClick = async () => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/matches/${id}`;
+    const shareData = { title: "JIotableTennis", text, url };
+    const nav = navigator as Navigator & {
+      canShare?: (d: ShareData) => boolean;
+      share?: (d: ShareData) => Promise<void>;
+    };
+    if (nav.share && (!nav.canShare || nav.canShare(shareData))) {
+      try {
+        await nav.share(shareData);
+        return;
+      } catch {
+        /* user cancelled → fall through to copy */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked; nothing we can do gracefully */
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      aria-label="Share match"
+      className="p-1.5 rounded-lg hover:bg-surface-raised/80 text-neutral hover:text-text-primary transition-colors"
+    >
+      {copied ? <Check size={18} className="text-success" /> : <Share2 size={18} />}
+    </button>
+  );
 }
 
 function MatchBackLink({
@@ -361,6 +402,9 @@ export function MatchDetailPageClient({
     currentPlayerId != null &&
     match.participants.some((p) => p.player.id === currentPlayerId);
 
+  const canShare = match.status === "COMPLETED";
+  const shareText = `${teamANames} ${teamASetsWon}-${teamBSetsWon} ${teamBNames} — JIotableTennis`;
+
   return (
     <div>
       {completeMatch.isPending && (
@@ -396,6 +440,7 @@ export function MatchDetailPageClient({
             </span>
           )}
           <StatusBadge status={match.status} />
+          {canShare && <ShareButton id={id} text={shareText} />}
         </div>
       </div>
 

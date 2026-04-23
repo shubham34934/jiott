@@ -28,6 +28,12 @@ import {
   MatchFiltersSheet,
   type MatchFiltersSheetValues,
 } from "@/components/MatchFiltersSheet";
+import { type RatingHistoryPoint } from "@/components/RatingHistoryChart";
+import {
+  HeadToHeadCard,
+  type HeadToHeadData,
+} from "@/components/HeadToHeadCard";
+import { apiGet } from "@/lib/api-client";
 import type { PlayerOption } from "@/components/PlayerSearchInput";
 import { TournamentListCard } from "@/components/TournamentListCard";
 import { fetchPlayersForPicker } from "@/lib/fetchPlayersForPicker";
@@ -78,6 +84,7 @@ export type PlayerProfilePayload = {
   user: { name: string | null; image: string | null };
   matchParticipations?: ProfileMatchParticipation[];
   tournamentTeams?: TournamentRow[];
+  ratingHistory?: RatingHistoryPoint[];
 };
 
 export const PROFILE_FILTER_DEFAULTS: MatchFiltersSheetValues = {
@@ -145,22 +152,17 @@ function countActive(v: MatchFiltersSheetValues): number {
   );
 }
 
-type RecentPreset = 7 | 14 | 30;
-const RECENT_PRESETS: RecentPreset[] = [7, 14, 30];
-
-function computeRecentStats(
+function computeStatsForRange(
   participations: ProfileMatchParticipation[],
-  days: RecentPreset,
-  now: Date = new Date()
+  fromMs: number,
+  toMs: number
 ): { total: number; wins: number; losses: number; winPct: number } {
-  const cutoff = new Date(now);
-  cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - (days - 1));
   let total = 0;
   let wins = 0;
   let losses = 0;
   for (const mp of participations) {
-    if (new Date(mp.match.createdAt) < cutoff) continue;
+    const t = new Date(mp.match.createdAt).getTime();
+    if (t < fromMs || t > toMs) continue;
     total++;
     const o = matchOutcome(mp);
     if (o === "won") wins++;
@@ -169,6 +171,51 @@ function computeRecentStats(
   const decided = wins + losses;
   const winPct = decided > 0 ? Math.round((wins / decided) * 100) : 0;
   return { total, wins, losses, winPct };
+}
+
+function computeRatingChangeInRange(
+  ratingHistory: RatingHistoryPoint[],
+  fromMs: number,
+  toMs: number
+): { delta: number; rankedMatches: number } {
+  let delta = 0;
+  let rankedMatches = 0;
+  let prevRating = 1000;
+  for (const p of ratingHistory) {
+    const t = new Date(p.createdAt).getTime();
+    if (t < fromMs) {
+      prevRating = p.rating;
+      continue;
+    }
+    if (t > toMs) break;
+    delta += p.rating - prevRating;
+    rankedMatches++;
+    prevRating = p.rating;
+  }
+  return { delta, rankedMatches };
+}
+
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+  });
+}
+
+function rangeHeading(preset: DatePreset, range: DateRange): string {
+  switch (preset) {
+    case "today":
+      return "Today";
+    case "yesterday":
+      return "Yesterday";
+    case "7d":
+      return "Last 7 days";
+    case "30d":
+      return "Last 30 days";
+    case "custom":
+      return `From ${formatShortDate(range.from)} to ${formatShortDate(range.to)}`;
+  }
 }
 
 function placementLabel(
@@ -189,14 +236,19 @@ export interface PlayerProfileViewProps {
   player: PlayerProfilePayload;
   /** Optional content rendered between Recent activity and Tournaments (e.g., Challenge button). */
   actionSlot?: ReactNode;
+  /** Logged-in user's playerId. When set and different from `player.id`, shows head-to-head. */
+  viewerPlayerId?: string | null;
 }
 
-export function PlayerProfileView({ player, actionSlot }: PlayerProfileViewProps) {
+export function PlayerProfileView({
+  player,
+  actionSlot,
+  viewerPlayerId,
+}: PlayerProfileViewProps) {
   const [filterValues, setFilterValues] = useState<MatchFiltersSheetValues>(
     PROFILE_FILTER_DEFAULTS
   );
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [recentPreset, setRecentPreset] = useState<RecentPreset>(7);
 
   const [datePreset, setDatePreset] = useState<DatePreset>("today");
   const [dateRange, setDateRange] = useState<DateRange>(() =>
@@ -233,6 +285,18 @@ export function PlayerProfileView({ player, actionSlot }: PlayerProfileViewProps
     staleTime: QUERY_STALE_TIME_MS,
   });
 
+  const showHeadToHead =
+    !!viewerPlayerId && viewerPlayerId !== player.id;
+  const { data: headToHead } = useQuery<HeadToHeadData>({
+    queryKey: ["h2h", player.id, viewerPlayerId ?? ""],
+    queryFn: () =>
+      apiGet(
+        `/api/players/${player.id}/head-to-head?vs=${viewerPlayerId}`
+      ).then((r) => r.json()),
+    enabled: showHeadToHead,
+    staleTime: QUERY_STALE_TIME_MS,
+  });
+
   const participations = player.matchParticipations ?? [];
   const tournamentRows = player.tournamentTeams ?? [];
 
@@ -258,6 +322,14 @@ export function PlayerProfileView({ player, actionSlot }: PlayerProfileViewProps
           </div>
         </div>
       </div>
+
+      {showHeadToHead && headToHead && (
+        <div className="px-4 mt-4">
+          <HeadToHeadCard data={headToHead} themName={player.user.name} />
+        </div>
+      )}
+
+      {actionSlot}
 
       <div className="grid grid-cols-3 gap-3 px-4 mt-4">
         <StatTile
@@ -299,13 +371,6 @@ export function PlayerProfileView({ player, actionSlot }: PlayerProfileViewProps
         />
       </div>
 
-      <RecentStatsSection
-        participations={participations}
-        preset={recentPreset}
-        onPresetChange={setRecentPreset}
-      />
-
-      {actionSlot}
 
       {tournamentRows.length > 0 && (
         <div className="px-4 mt-6">
@@ -337,7 +402,7 @@ export function PlayerProfileView({ player, actionSlot }: PlayerProfileViewProps
 
       <div className="px-4 mt-6 mb-4">
         <h3 className="mb-3 text-base font-bold text-text-primary">
-          Match History
+          {rangeHeading(datePreset, dateRange)}
         </h3>
         <DateRangeFilter
           preset={datePreset}
@@ -345,6 +410,11 @@ export function PlayerProfileView({ player, actionSlot }: PlayerProfileViewProps
           customTo={customTo}
           onPresetSelect={applyPreset}
           onCustomChange={applyCustom}
+        />
+        <RangeStatsSummary
+          participations={participations}
+          ratingHistory={player.ratingHistory ?? []}
+          dateRange={dateRange}
         />
         <MatchHistory
           participations={participations}
@@ -385,49 +455,26 @@ function StatTile({
   );
 }
 
-function RecentStatsSection({
+function RangeStatsSummary({
   participations,
-  preset,
-  onPresetChange,
+  ratingHistory,
+  dateRange,
 }: {
   participations: ProfileMatchParticipation[];
-  preset: RecentPreset;
-  onPresetChange: (next: RecentPreset) => void;
+  ratingHistory: RatingHistoryPoint[];
+  dateRange: DateRange;
 }) {
-  const stats = computeRecentStats(participations, preset);
+  const fromMs = dateRange.from.getTime();
+  const toMs = dateRange.to.getTime();
+  const stats = computeStatsForRange(participations, fromMs, toMs);
+  const rating = computeRatingChangeInRange(ratingHistory, fromMs, toMs);
   return (
-    <section className="px-4 mt-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-bold text-text-primary">
-          Last {preset} days
-        </h3>
-        <div
-          role="tablist"
-          aria-label="Recent activity range"
-          className="inline-flex gap-1 bg-surface border border-border rounded-full p-0.5"
-        >
-          {RECENT_PRESETS.map((d) => {
-            const active = preset === d;
-            return (
-              <button
-                key={d}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => onPresetChange(d)}
-                className={
-                  active
-                    ? "px-2.5 h-6 rounded-full bg-primary text-white text-[11px] font-semibold"
-                    : "px-2.5 h-6 rounded-full text-[11px] font-medium text-neutral"
-                }
-              >
-                {d}d
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
+    <div className="mb-4">
+      <RatingChangeCard
+        delta={rating.delta}
+        rankedMatches={rating.rankedMatches}
+      />
+      <div className="grid grid-cols-3 gap-3 mt-3">
         <StatTile
           icon={<Activity size={20} className="text-primary mx-auto mb-2" />}
           value={stats.total}
@@ -446,7 +493,57 @@ function RecentStatsSection({
           label="Lost matches"
         />
       </div>
-    </section>
+    </div>
+  );
+}
+
+function RatingChangeCard({
+  delta,
+  rankedMatches,
+}: {
+  delta: number;
+  rankedMatches: number;
+}) {
+  const positive = delta > 0;
+  const negative = delta < 0;
+  const colorCls = positive
+    ? "text-success"
+    : negative
+      ? "text-danger"
+      : "text-neutral";
+  const iconBgCls = positive
+    ? "bg-success/15 text-success"
+    : negative
+      ? "bg-danger/15 text-danger"
+      : "bg-border text-neutral";
+  const Icon = positive ? TrendingUp : negative ? TrendingDown : Activity;
+  const sign = positive ? "+" : "";
+  const title =
+    rankedMatches === 0
+      ? "No ranked matches in this window"
+      : positive
+        ? `Gained ${sign}${delta} points`
+        : negative
+          ? `Lost ${Math.abs(delta)} points`
+          : "No net change";
+  const subtitle =
+    rankedMatches === 0
+      ? "Play a ranked match to move your rating."
+      : `Over ${rankedMatches} ranked match${rankedMatches === 1 ? "" : "es"}`;
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-surface p-4 shadow-sm ring-1 ring-white/[0.03] flex items-center gap-3">
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBgCls}`}
+      >
+        <Icon size={18} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-bold ${colorCls}`}>
+          {rankedMatches === 0 ? title : `${sign}${delta} points`}
+        </p>
+        <p className="text-xs text-neutral truncate">{subtitle}</p>
+      </div>
+    </div>
   );
 }
 

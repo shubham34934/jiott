@@ -111,6 +111,30 @@ export function computeRankedStatsReplay(matchesSorted: MatchRowForReplay[]): {
   return { playerStates, deltasByKey };
 }
 
+export type RatingPoint = {
+  matchId: string;
+  createdAt: Date;
+  rating: number;
+};
+
+/** After-match rating timeline for one player (ignores matches they weren't in). */
+export function computeRatingHistoryForPlayer(
+  matchesSorted: MatchRowForReplay[],
+  playerId: string
+): RatingPoint[] {
+  const { deltasByKey } = computeRankedStatsReplay(matchesSorted);
+  let rating = initialRankedPlayerReplayState().rating;
+  const history: RatingPoint[] = [];
+  for (const match of matchesSorted) {
+    const inMatch = match.participants.some((p) => p.playerId === playerId);
+    if (!inMatch) continue;
+    const delta = deltasByKey.get(`${match.id}:${playerId}`) ?? 0;
+    rating += delta;
+    history.push({ matchId: match.id, createdAt: match.createdAt, rating });
+  }
+  return history;
+}
+
 /**
  * Writes replayed ranked stats for every player who appears in at least one completed
  * non-friendly match, and updates `MatchParticipant.rankedRatingDelta` for decided matches.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "jiott-v2";
+const CACHE_NAME = "jiott-v3";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -50,13 +50,12 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "JioTT", body: event.data ? event.data.text() : "" };
+    data = { body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "JioTT";
   const body = data.body || "";
   const url = data.url || "/";
   event.waitUntil(
-    self.registration.showNotification(title, {
+    self.registration.showNotification("JIotableTennis", {
       body,
       icon: "/logo.svg",
       badge: "/logo.svg",

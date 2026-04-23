@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getApiActor } from "@/lib/get-api-actor";
@@ -11,6 +11,8 @@ import {
   mergeRankedRatingDeltasForMatch,
 } from "@/lib/match-participant-queries";
 import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
+import { sendPushToUsers } from "@/lib/push";
+import { firstName } from "@/lib/displayName";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -145,6 +147,19 @@ export async function POST(req: Request) {
   });
 
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
+
+  const starterLabel = firstName(actor.name);
+  const notifyUserIds = match.participants
+    .map((p) => p.player.userId)
+    .filter((uid): uid is string => !!uid && uid !== actor.prismaUserId);
+  if (notifyUserIds.length > 0) {
+    after(() =>
+      sendPushToUsers(notifyUserIds, {
+        body: `${starterLabel} started a match with you`,
+        url: `/matches/${match.id}`,
+      })
+    );
+  }
 
   return NextResponse.json(match, { status: 201 });
 }

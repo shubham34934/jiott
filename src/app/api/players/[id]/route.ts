@@ -5,6 +5,7 @@ import {
   matchParticipantWithPlayerForApi,
   mergeRankedRatingDeltasForMatches,
 } from "@/lib/match-participant-queries";
+import { computeRatingHistoryForPlayer } from "@/lib/replay-ranked-stats";
 import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
 
 const tournamentTeamPlayerSelect = {
@@ -161,6 +162,32 @@ export async function GET(
     if (!isPrismaMissingColumnError(e)) throw e;
   }
 
+  const rankedMatches = await prisma.match.findMany({
+    where: { status: "COMPLETED", isFriendly: false },
+    include: {
+      participants: { select: { playerId: true, team: true } },
+      sets: { orderBy: { setNumber: "asc" } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  const ratingHistory = computeRatingHistoryForPlayer(
+    rankedMatches.map((m) => ({
+      id: m.id,
+      totalSets: m.totalSets,
+      pointsPerSet: m.pointsPerSet,
+      createdAt: m.createdAt,
+      participants: m.participants.map((p) => ({
+        playerId: p.playerId,
+        team: p.team,
+      })),
+      sets: m.sets.map((s) => ({
+        teamAScore: s.teamAScore,
+        teamBScore: s.teamBScore,
+      })),
+    })),
+    id
+  );
+
   return NextResponse.json(
     {
       ...player,
@@ -169,6 +196,7 @@ export async function GET(
       _rank,
       matchParticipations,
       tournamentTeams,
+      ratingHistory,
     },
     { headers: JSON_NO_STORE_HEADERS }
   );

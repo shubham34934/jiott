@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
@@ -14,6 +14,8 @@ import {
   mergeRankedRatingDeltasForMatch,
 } from "@/lib/match-participant-queries";
 import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
+import { sendPushToUser } from "@/lib/push";
+import { firstNamesJoined } from "@/lib/displayName";
 
 export const maxDuration = 60;
 
@@ -305,5 +307,39 @@ async function completeMatch(matchId: string, userId: string) {
   revalidateTag(LEADERBOARD_CACHE_TAG, "max");
   revalidateTag(PLAYERS_LIST_CACHE_TAG, "max");
 
+  notifyMatchCompleted(match, winningTeam, teamAWins, teamBWins, userId);
+
   return NextResponse.json({ success: true });
+}
+
+function notifyMatchCompleted(
+  match: {
+    id: string;
+    participants: Array<{
+      team: "A" | "B";
+      player: { userId: string; user: { name: string | null } };
+    }>;
+  },
+  winningTeam: "A" | "B",
+  teamAWins: number,
+  teamBWins: number,
+  actorUserId: string
+) {
+  const winnerSets = winningTeam === "A" ? teamAWins : teamBWins;
+  const loserSets = winningTeam === "A" ? teamBWins : teamAWins;
+  const url = `/matches/${match.id}`;
+
+  for (const p of match.participants) {
+    const uid = p.player.userId;
+    if (!uid || uid === actorUserId) continue;
+    const won = p.team === winningTeam;
+    const opponents = match.participants.filter((x) => x.team !== p.team);
+    const opponentNames = firstNamesJoined(
+      opponents.map((x) => x.player.user.name)
+    );
+    const body = won
+      ? `You won ${winnerSets}-${loserSets} vs ${opponentNames}`
+      : `You lost ${loserSets}-${winnerSets} vs ${opponentNames}`;
+    after(() => sendPushToUser(uid, { body, url }));
+  }
 }

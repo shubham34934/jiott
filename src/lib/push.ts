@@ -14,7 +14,7 @@ function ensureConfigured() {
 }
 
 export interface PushPayload {
-  title: string;
+  /** One-line message shown in the notification. */
   body: string;
   /** Path opened when the user taps the notification. */
   url?: string;
@@ -24,6 +24,25 @@ export interface SendPushResult {
   sent: number;
   removed: number;
   failed: number;
+}
+
+/** Send the same payload to many users. Dedupes, no-ops on missing VAPID. */
+export async function sendPushToUsers(
+  userIds: readonly string[],
+  payload: PushPayload
+): Promise<SendPushResult> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  const results = await Promise.all(
+    unique.map((id) => sendPushToUser(id, payload))
+  );
+  return results.reduce<SendPushResult>(
+    (acc, r) => ({
+      sent: acc.sent + r.sent,
+      removed: acc.removed + r.removed,
+      failed: acc.failed + r.failed,
+    }),
+    { sent: 0, removed: 0, failed: 0 }
+  );
 }
 
 /** Send a notification to every registered device of a user. Removes dead subscriptions. */

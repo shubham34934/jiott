@@ -10,6 +10,7 @@ import {
   PlayerProfileSkeleton,
   type PlayerProfilePayload,
 } from "@/components/PlayerProfileView";
+import { useAppSession } from "@/hooks/use-app-session";
 import { apiGet } from "@/lib/api-client";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 
@@ -19,6 +20,8 @@ export default function PlayerProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { data: session } = useAppSession();
+  const viewerPlayerId = session?.user?.playerId ?? null;
 
   const { data: player, isLoading } = useQuery<PlayerProfilePayload>({
     queryKey: ["player", id],
@@ -60,6 +63,7 @@ export default function PlayerProfilePage({
       {header}
       <PlayerProfileView
         player={player}
+        viewerPlayerId={viewerPlayerId}
         actionSlot={
           <div className="px-4 mt-4">
             <Link href={`/matches/new?opponent=${id}`}>
