@@ -16,7 +16,14 @@ import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
 type Step = 1 | 2 | 3 | 4;
 type MatchType = "SINGLES" | "DOUBLES";
 
-export default function NewMatchPage() {
+export interface NewMatchFlowProps {
+  /** Closes the host modal (URL param clear, etc.). */
+  onClose: () => void;
+  /** Player ID to pre-fill as the opponent (Team B, slot 1). */
+  initialOpponentId?: string | null;
+}
+
+export function NewMatchFlow({ onClose, initialOpponentId }: NewMatchFlowProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(1);
@@ -47,7 +54,7 @@ export default function NewMatchPage() {
       }).then((r) => r.json()),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
-      router.refresh();
+      onClose();
       router.push(`/matches/${data.id}`);
     },
   });
@@ -66,6 +73,17 @@ export default function NewMatchPage() {
     });
   };
 
+  const pickType = (type: MatchType) => {
+    setMatchType(type);
+    // Singles: slot 0 = Team A, slot 1 = Team B. Doubles: 0-1 = Team A, 2-3 = Team B.
+    // Pre-fill the first Team B slot with the opponent from the "Challenge" CTA.
+    const opp = initialOpponentId ?? "";
+    setSelectedPlayers(
+      type === "SINGLES" ? ["", opp] : ["", "", opp, ""]
+    );
+    setStep(2);
+  };
+
   const handleStart = () => {
     if (!matchType) return;
     createMatch.mutate({
@@ -80,13 +98,13 @@ export default function NewMatchPage() {
   const progress = (step / 4) * 100;
 
   return (
-    <div>
-      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
+      <div className="flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 bg-surface/95 backdrop-blur-xl border-b border-border">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={onClose}
           className="p-1"
-          aria-label="Back"
+          aria-label="Close"
         >
           <ArrowLeft size={22} className="text-text-primary" />
         </button>
@@ -103,20 +121,21 @@ export default function NewMatchPage() {
         />
       </div>
 
-      <div className="px-4 pt-6">
+      <div
+        className="flex-1 overflow-y-auto px-4 pt-6 pb-8 max-w-lg mx-auto w-full"
+        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+      >
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-bold mb-2 text-text-primary">Choose match type</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">
+              Choose match type
+            </h2>
             <p className="text-sm text-neutral mb-6">
               Select the type of match
             </p>
             <div className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => {
-                  setMatchType("SINGLES");
-                  setSelectedPlayers(["", ""]);
-                  setStep(2);
-                }}
+                onClick={() => pickType("SINGLES")}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
                   matchType === "SINGLES"
                     ? "border-primary bg-primary/12"
@@ -127,11 +146,7 @@ export default function NewMatchPage() {
                 <span className="font-semibold text-sm">Singles</span>
               </button>
               <button
-                onClick={() => {
-                  setMatchType("DOUBLES");
-                  setSelectedPlayers(["", "", "", ""]);
-                  setStep(2);
-                }}
+                onClick={() => pickType("DOUBLES")}
                 className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
                   matchType === "DOUBLES"
                     ? "border-primary bg-primary/12"
@@ -147,7 +162,9 @@ export default function NewMatchPage() {
 
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold mb-2 text-text-primary">Select players</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">
+              Select players
+            </h2>
             <p className="text-sm text-neutral mb-6">
               Search and pick {requiredPlayers} players
             </p>
@@ -174,7 +191,9 @@ export default function NewMatchPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-xs font-semibold text-neutral uppercase tracking-wide">Team A</p>
+                  <p className="text-xs font-semibold text-neutral uppercase tracking-wide">
+                    Team A
+                  </p>
                   <PlayerSearchInput
                     label="Team A — Player 1"
                     players={players || []}
@@ -191,7 +210,9 @@ export default function NewMatchPage() {
                     onSelect={(id) => setPlayerAtSlot(1, id)}
                     onClear={() => setPlayerAtSlot(1, null)}
                   />
-                  <p className="text-xs font-semibold text-neutral uppercase tracking-wide pt-2">Team B</p>
+                  <p className="text-xs font-semibold text-neutral uppercase tracking-wide pt-2">
+                    Team B
+                  </p>
                   <PlayerSearchInput
                     label="Team B — Player 1"
                     players={players || []}
@@ -218,7 +239,9 @@ export default function NewMatchPage() {
               </Button>
               <Button
                 fullWidth
-                disabled={selectedPlayers.filter(Boolean).length !== requiredPlayers}
+                disabled={
+                  selectedPlayers.filter(Boolean).length !== requiredPlayers
+                }
                 onClick={() => setStep(3)}
               >
                 Continue
@@ -229,7 +252,9 @@ export default function NewMatchPage() {
 
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-bold mb-2 text-text-primary">Match settings</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">
+              Match settings
+            </h2>
             <p className="text-sm text-neutral mb-6">
               Configure the match rules
             </p>
@@ -288,14 +313,20 @@ export default function NewMatchPage() {
                 >
                   <div className="text-left">
                     <p className="text-sm font-medium">Friendly Match</p>
-                    <p className="text-xs text-neutral">Ratings won&apos;t be affected</p>
+                    <p className="text-xs text-neutral">
+                      Ratings won&apos;t be affected
+                    </p>
                   </div>
-                  <div className={`w-11 h-6 rounded-full transition-all relative ${
-                    isFriendly ? "bg-primary" : "bg-border"
-                  }`}>
-                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-text-primary shadow-md transition-all ${
-                      isFriendly ? "left-[22px]" : "left-0.5"
-                    }`} />
+                  <div
+                    className={`w-11 h-6 rounded-full transition-all relative ${
+                      isFriendly ? "bg-primary" : "bg-border"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-text-primary shadow-md transition-all ${
+                        isFriendly ? "left-[22px]" : "left-0.5"
+                      }`}
+                    />
                   </div>
                 </button>
               </div>
@@ -314,7 +345,9 @@ export default function NewMatchPage() {
 
         {step === 4 && (
           <div>
-            <h2 className="text-xl font-bold mb-2 text-text-primary">Confirm match</h2>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">
+              Confirm match
+            </h2>
             <p className="text-sm text-neutral mb-6">
               Review and start the match
             </p>
@@ -334,7 +367,9 @@ export default function NewMatchPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-neutral">Match Type</span>
-                <span className={`font-medium ${isFriendly ? "text-primary" : ""}`}>
+                <span
+                  className={`font-medium ${isFriendly ? "text-primary" : ""}`}
+                >
                   {isFriendly ? "Friendly" : "Ranked"}
                 </span>
               </div>

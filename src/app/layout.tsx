@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BottomNav } from "@/components/BottomNav";
+import { NewMatchModal } from "@/components/NewMatchModal";
 // import { Footer } from "@/components/Footer";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -64,6 +65,7 @@ export default function RootLayout({
                   {/* <Footer /> */}
                 </main>
                 <BottomNav />
+                <NewMatchModal />
                 <ServiceWorkerRegister />
               </PullToRefresh>
             </AuthGuard>

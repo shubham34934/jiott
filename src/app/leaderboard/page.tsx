@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Trophy } from "lucide-react";
 import { getLeaderboardPlayersCached } from "@/lib/get-leaderboard";
 
 /** Avoid DB access during `next build`; data is still cached per request via `unstable_cache`. */
@@ -19,15 +20,8 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="px-4 pt-4">
-      <div className="mb-5">
-        <p className="text-sm font-semibold text-text-primary">
-          Who&apos;s ruling the table?
-        </p>
-        <p className="text-xs text-neutral mt-0.5">
-          {players.length}{" "}
-          {players.length === 1 ? "player" : "players"} ranked by Elo rating.
-          Win to climb, lose to fall.
-        </p>
+      <div className="flex justify-center mb-5">
+        <Trophy className="h-10 w-10 text-gold" strokeWidth={1.5} />
       </div>
 
       {topThree.length > 0 && (

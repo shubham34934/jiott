@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   List,
@@ -31,6 +35,8 @@ const rightTabs: NavTab[] = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useAppSession();
 
@@ -47,7 +53,15 @@ export function BottomNav() {
     }
   }
 
-  const plusHref = session ? "/matches/new" : "/auth/signin?callbackUrl=/matches/new";
+  const openNewMatch = () => {
+    if (!session) {
+      router.push("/auth/signin?callbackUrl=" + encodeURIComponent(pathname));
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.set("new", "1");
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-surface/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_32px_rgba(0,0,0,0.45)]">
@@ -61,13 +75,14 @@ export function BottomNav() {
           />
         ))}
 
-        <Link
-          href={plusHref}
+        <button
+          type="button"
+          onClick={openNewMatch}
           aria-label="Start a new match"
           className="flex items-center justify-center h-14 w-14 -mt-6 rounded-full bg-primary text-white shadow-[0_8px_24px_rgba(94,158,255,0.45)] ring-4 ring-background active:scale-95 transition-transform"
         >
           <Plus size={28} strokeWidth={3} />
-        </Link>
+        </button>
 
         {rightTabs.map((tab) => (
           <TabLink
