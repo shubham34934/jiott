@@ -1,6 +1,5 @@
 import { getTournamentsListCached } from "@/lib/get-tournaments-list";
 import { TournamentListCard } from "@/components/TournamentListCard";
-import { TournamentsEmptyCta } from "./tournaments-empty-cta";
 import { TournamentsHeader } from "./tournaments-header";
 
 /** Avoid DB access during `next build`; list payload is cached via `unstable_cache`. */
@@ -22,24 +21,15 @@ export default async function TournamentsListPage() {
   const tournaments = await getTournamentsListCached();
 
   return (
-    <div className="px-4 pt-8">
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Tournaments</h1>
-          <p className="text-sm text-neutral mt-1">
-            Brackets, winners, and match history
-          </p>
-        </div>
+    <div className="px-4 pt-4">
+      <div className="mb-6">
         <TournamentsHeader />
       </div>
 
       {tournaments.length === 0 && (
-        <div className="text-center py-12 px-4">
-          <p className="text-sm text-neutral mb-4">
-            No tournaments yet. Create one to run a bracket.
-          </p>
-          <TournamentsEmptyCta />
-        </div>
+        <p className="text-sm text-neutral text-center py-12">
+          No tournaments yet. Create one to run a bracket.
+        </p>
       )}
 
       <div className="flex flex-col gap-3 pb-4">

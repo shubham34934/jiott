@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
@@ -20,6 +21,7 @@ export default function PlayerProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: session } = useAppSession();
   const viewerPlayerId = session?.user?.playerId ?? null;
 
@@ -31,9 +33,14 @@ export default function PlayerProfilePage({
 
   const header = (
     <div className="flex items-center gap-3 px-4 pt-4 pb-2 border-b border-border">
-      <Link href="/players" className="p-1" aria-label="Back">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="p-1"
+        aria-label="Back"
+      >
         <ArrowLeft size={22} className="text-text-primary" />
-      </Link>
+      </button>
       <h1 className="text-lg font-bold text-text-primary">Player Profile</h1>
     </div>
   );

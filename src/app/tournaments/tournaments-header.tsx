@@ -9,10 +9,13 @@ export function TournamentsHeader() {
   const { data: session } = useSession();
 
   return (
-    <Link href={session ? "/tournaments/new" : "/auth/signin"} className="shrink-0">
-      <Button size="sm" variant="secondary">
+    <Link
+      href={session ? "/tournaments/new" : "/auth/signin"}
+      className="block"
+    >
+      <Button fullWidth size="sm">
         <Plus size={16} />
-        New
+        Create tournament
       </Button>
     </Link>
   );

@@ -106,18 +106,17 @@ function ShareButton({ id, text }: { id: string; text: string }) {
   );
 }
 
-function MatchBackLink({
-  fallbackHref,
-  returnTo,
-}: {
-  fallbackHref: string;
-  returnTo: string | null;
-}) {
-  const href = returnTo ?? fallbackHref;
+function MatchBackLink() {
+  const router = useRouter();
   return (
-    <Link href={href} className="p-1" aria-label="Back">
+    <button
+      type="button"
+      onClick={() => router.back()}
+      className="p-1"
+      aria-label="Back"
+    >
       <ArrowLeft size={22} className="text-text-primary" />
-    </Link>
+    </button>
   );
 }
 
@@ -164,7 +163,7 @@ function displayFirstName(displayName: string): string {
   return t.split(/\s+/)[0] ?? t;
 }
 
-function MatchDetailSkeleton({ returnTo }: { returnTo: string | null }) {
+function MatchDetailSkeleton() {
   const teamCardCls =
     "rounded-lg p-3 flex items-center justify-between animate-pulse";
   const pillCls = "h-4 bg-border rounded";
@@ -174,7 +173,7 @@ function MatchDetailSkeleton({ returnTo }: { returnTo: string | null }) {
     <div>
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <div className="flex items-center gap-3">
-          <MatchBackLink fallbackHref="/matches" returnTo={returnTo} />
+          <MatchBackLink />
           <div className="space-y-1.5">
             <div className="h-5 w-32 bg-border rounded animate-pulse" />
             <div className="h-3 w-20 bg-border rounded animate-pulse" />
@@ -218,13 +217,7 @@ function MatchDetailSkeleton({ returnTo }: { returnTo: string | null }) {
   );
 }
 
-export function MatchDetailPageClient({
-  id,
-  returnTo,
-}: {
-  id: string;
-  returnTo: string | null;
-}) {
+export function MatchDetailPageClient({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: session } = useAppSession();
@@ -356,7 +349,7 @@ export function MatchDetailPageClient({
   });
 
   if (isLoading || !match) {
-    return <MatchDetailSkeleton returnTo={returnTo} />;
+    return <MatchDetailSkeleton />;
   }
 
   const teamA = match.participants.filter((p) => p.team === "A");
@@ -427,7 +420,7 @@ export function MatchDetailPageClient({
       )}
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <div className="flex items-center gap-3">
-          <MatchBackLink fallbackHref="/matches" returnTo={returnTo} />
+          <MatchBackLink />
           <div>
             <h1 className="text-lg font-bold text-text-primary">Match Details</h1>
             <p className="text-xs text-neutral">{date}</p>

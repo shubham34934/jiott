@@ -21,81 +21,133 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const player = await prisma.player.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      userId: true,
-      rating: true,
-      matchesPlayed: true,
-      matchesWon: true,
-      createdAt: true,
-      updatedAt: true,
-      user: { select: { name: true, email: true, image: true } },
-      matchParticipations: {
+  // Wave 1 — all independent of each other.
+  const [player, streakRow, tournamentTeams, rankedMatchesRaw] =
+    await Promise.all([
+      prisma.player.findUnique({
+        where: { id },
         select: {
           id: true,
-          matchId: true,
-          playerId: true,
-          team: true,
-          match: {
+          userId: true,
+          rating: true,
+          matchesPlayed: true,
+          matchesWon: true,
+          createdAt: true,
+          updatedAt: true,
+          user: { select: { name: true, email: true, image: true } },
+          matchParticipations: {
             select: {
               id: true,
-              type: true,
-              status: true,
-              totalSets: true,
-              pointsPerSet: true,
-              isFriendly: true,
-              createdBy: true,
-              createdAt: true,
-              updatedAt: true,
-              participants: matchParticipantWithPlayerForApi,
-              sets: {
-                orderBy: { setNumber: "asc" },
+              matchId: true,
+              playerId: true,
+              team: true,
+              match: {
                 select: {
                   id: true,
-                  matchId: true,
-                  setNumber: true,
-                  teamAScore: true,
-                  teamBScore: true,
+                  type: true,
+                  status: true,
+                  totalSets: true,
+                  pointsPerSet: true,
+                  isFriendly: true,
+                  createdBy: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  participants: matchParticipantWithPlayerForApi,
+                  sets: {
+                    orderBy: { setNumber: "asc" },
+                    select: {
+                      id: true,
+                      matchId: true,
+                      setNumber: true,
+                      teamAScore: true,
+                      teamBScore: true,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: { match: { createdAt: "desc" } },
+            take: 20,
+          },
+        },
+      }),
+      prisma.player
+        .findUnique({
+          where: { id },
+          select: { currentWinStreak: true, bestWinStreak: true },
+        })
+        .catch((e: unknown) => {
+          if (isPrismaMissingColumnError(e)) return null;
+          throw e;
+        }),
+      prisma.team.findMany({
+        where: { OR: [{ player1Id: id }, { player2Id: id }] },
+        include: {
+          tournament: {
+            include: {
+              winnerTeam: {
+                include: {
+                  player1: tournamentTeamPlayerSelect,
+                  player2: tournamentTeamPlayerSelect,
+                },
+              },
+              runnerUpTeam: {
+                include: {
+                  player1: tournamentTeamPlayerSelect,
+                  player2: tournamentTeamPlayerSelect,
                 },
               },
             },
           },
         },
-        orderBy: { match: { createdAt: "desc" } },
-        take: 20,
-      },
-    },
-  });
+        orderBy: { tournament: { createdAt: "desc" } },
+      }),
+      prisma.match.findMany({
+        where: { status: "COMPLETED", isFriendly: false },
+        include: {
+          participants: { select: { playerId: true, team: true } },
+          sets: { orderBy: { setNumber: "asc" } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+    ]);
 
   if (!player) {
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
   }
 
-  const aheadCount = await prisma.player.count({
-    where: {
-      OR: [
-        { rating: { gt: player.rating } },
-        { AND: [{ rating: player.rating }, { id: { lt: player.id } }] },
-      ],
-    },
-  });
-  const _rank = aheadCount + 1;
+  const currentWinStreak = streakRow?.currentWinStreak ?? 0;
+  const bestWinStreak = streakRow?.bestWinStreak ?? 0;
 
   const participationMatchIds = player.matchParticipations.map(
     (mp) => mp.match.id
   );
-  const linkedRows =
+  const participationMatches = player.matchParticipations.map((mp) => mp.match);
+
+  // Wave 2 — all depend only on `player`, independent of each other.
+  const [aheadCount, linkedRows, matchesWithDeltas] = await Promise.all([
+    prisma.player.count({
+      where: {
+        OR: [
+          { rating: { gt: player.rating } },
+          { AND: [{ rating: player.rating }, { id: { lt: player.id } }] },
+        ],
+      },
+    }),
     participationMatchIds.length > 0
-      ? await prisma.tournamentMatch.findMany({
+      ? prisma.tournamentMatch.findMany({
           where: { matchId: { in: participationMatchIds } },
           select: {
             matchId: true,
             tournament: { select: { name: true } },
           },
         })
-      : [];
+      : Promise.resolve([]),
+    mergeRankedRatingDeltasForMatches(participationMatches),
+  ]);
+
+  const _rank = aheadCount + 1;
+
   const linkedSet = new Set(
     linkedRows
       .map((r) => r.matchId)
@@ -108,9 +160,6 @@ export async function GET(
     }
   }
 
-  const participationMatches = player.matchParticipations.map((mp) => mp.match);
-  const matchesWithDeltas =
-    await mergeRankedRatingDeltasForMatches(participationMatches);
   const matchById = new Map(matchesWithDeltas.map((m) => [m.id, m]));
 
   const matchParticipations = player.matchParticipations.map((mp) => ({
@@ -122,56 +171,8 @@ export async function GET(
     },
   }));
 
-  const tournamentTeams = await prisma.team.findMany({
-    where: {
-      OR: [{ player1Id: id }, { player2Id: id }],
-    },
-    include: {
-      tournament: {
-        include: {
-          winnerTeam: {
-            include: {
-              player1: tournamentTeamPlayerSelect,
-              player2: tournamentTeamPlayerSelect,
-            },
-          },
-          runnerUpTeam: {
-            include: {
-              player1: tournamentTeamPlayerSelect,
-              player2: tournamentTeamPlayerSelect,
-            },
-          },
-        },
-      },
-    },
-    orderBy: { tournament: { createdAt: "desc" } },
-  });
-
-  let currentWinStreak = 0;
-  let bestWinStreak = 0;
-  try {
-    const streakRow = await prisma.player.findUnique({
-      where: { id },
-      select: { currentWinStreak: true, bestWinStreak: true },
-    });
-    if (streakRow) {
-      currentWinStreak = streakRow.currentWinStreak ?? 0;
-      bestWinStreak = streakRow.bestWinStreak ?? 0;
-    }
-  } catch (e) {
-    if (!isPrismaMissingColumnError(e)) throw e;
-  }
-
-  const rankedMatches = await prisma.match.findMany({
-    where: { status: "COMPLETED", isFriendly: false },
-    include: {
-      participants: { select: { playerId: true, team: true } },
-      sets: { orderBy: { setNumber: "asc" } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
   const ratingHistory = computeRatingHistoryForPlayer(
-    rankedMatches.map((m) => ({
+    rankedMatchesRaw.map((m) => ({
       id: m.id,
       totalSets: m.totalSets,
       pointsPerSet: m.pointsPerSet,

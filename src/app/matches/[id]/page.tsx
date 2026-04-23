@@ -1,17 +1,8 @@
 import type { Metadata } from "next";
 import { MatchDetailPageClient } from "./match-detail-client";
-import { safeReturnPath } from "@/lib/safe-return-path";
 import { prisma } from "@/lib/prisma";
 import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
 import { firstNamesJoined } from "@/lib/displayName";
-
-function firstReturnToQuery(
-  raw: string | string[] | undefined
-): string | null {
-  if (raw === undefined) return null;
-  if (typeof raw === "string") return raw;
-  return typeof raw[0] === "string" ? raw[0] : null;
-}
 
 export async function generateMetadata({
   params,
@@ -72,13 +63,9 @@ export async function generateMetadata({
 
 export default async function MatchDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ returnTo?: string | string[] }>;
 }) {
   const { id } = await params;
-  const sp = await searchParams;
-  const returnTo = safeReturnPath(firstReturnToQuery(sp.returnTo));
-  return <MatchDetailPageClient id={id} returnTo={returnTo} />;
+  return <MatchDetailPageClient id={id} />;
 }

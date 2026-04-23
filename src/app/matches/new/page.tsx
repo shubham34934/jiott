@@ -82,9 +82,14 @@ export default function NewMatchPage() {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-        <Link href="/" className="p-1">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="p-1"
+          aria-label="Back"
+        >
           <ArrowLeft size={22} className="text-text-primary" />
-        </Link>
+        </button>
         <div>
           <h1 className="text-lg font-bold text-text-primary">New Match</h1>
           <p className="text-xs text-neutral">Step {step} of 4</p>

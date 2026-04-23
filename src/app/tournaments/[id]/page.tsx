@@ -122,9 +122,14 @@ export default function TournamentPage({
     <div>
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <div className="flex items-center gap-3">
-          <Link href="/tournaments" className="p-1" aria-label="Back to tournaments">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="p-1"
+            aria-label="Back"
+          >
             <ArrowLeft size={22} className="text-text-primary" />
-          </Link>
+          </button>
           <div>
             <h1 className="text-lg font-bold text-text-primary">{tournament.name}</h1>
             <p className="text-xs text-neutral">

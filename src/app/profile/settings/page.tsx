@@ -69,9 +69,14 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-4 pb-2 border-b border-border">
-        <Link href="/profile" className="p-1" aria-label="Back">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="p-1"
+          aria-label="Back"
+        >
           <ArrowLeft size={22} className="text-text-primary" />
-        </Link>
+        </button>
         <h1 className="text-lg font-bold text-text-primary">Settings</h1>
       </div>
 

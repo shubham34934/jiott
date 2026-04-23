@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquareText, Settings } from "lucide-react";
+import { MessageSquareText } from "lucide-react";
 import { Button } from "@/components/Button";
 import { JioTTAuthMark } from "@/components/JioTTLogo";
 import {
@@ -26,15 +26,7 @@ export default function ProfilePage() {
   });
 
   if (status === "loading" || (session && !player)) {
-    return (
-      <div>
-        <div className="flex items-center justify-between px-4 pt-8 mb-4">
-          <div className="h-7 w-24 bg-border rounded animate-pulse" />
-          <div className="h-8 w-8 bg-border rounded animate-pulse" />
-        </div>
-        <PlayerProfileSkeleton />
-      </div>
-    );
+    return <PlayerProfileSkeleton />;
   }
 
   if (!session) {
@@ -70,20 +62,5 @@ export default function ProfilePage() {
 
   if (!player) return null;
 
-  return (
-    <div>
-      <div className="flex items-center justify-between px-4 pt-8 mb-4">
-        <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
-        <Link
-          href="/profile/settings"
-          className="p-2 text-neutral hover:text-text-primary"
-          aria-label="Open settings"
-        >
-          <Settings size={22} />
-        </Link>
-      </div>
-
-      <PlayerProfileView player={player} />
-    </div>
-  );
+  return <PlayerProfileView player={player} />;
 }

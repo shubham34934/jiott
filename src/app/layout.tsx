@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AppHeader } from "@/components/AppHeader";
+import { AuthGuard } from "@/components/AuthGuard";
 import { BottomNav } from "@/components/BottomNav";
 // import { Footer } from "@/components/Footer";
 import { QueryProvider } from "@/providers/QueryProvider";
@@ -54,14 +56,17 @@ export default function RootLayout({
       <body className="min-h-dvh bg-background" suppressHydrationWarning>
         <AuthProvider>
           <QueryProvider>
-            <PullToRefresh>
-              <main className="pb-20 max-w-lg mx-auto min-h-dvh">
-                {children}
-                {/* <Footer /> */}
-              </main>
-              <BottomNav />
-              <ServiceWorkerRegister />
-            </PullToRefresh>
+            <AuthGuard>
+              <PullToRefresh>
+                <AppHeader />
+                <main className="pb-20 max-w-lg mx-auto min-h-dvh">
+                  {children}
+                  {/* <Footer /> */}
+                </main>
+                <BottomNav />
+                <ServiceWorkerRegister />
+              </PullToRefresh>
+            </AuthGuard>
           </QueryProvider>
         </AuthProvider>
       </body>

@@ -77,9 +77,8 @@ export default function PlayersPage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
-    <div className="px-4 pt-8">
+    <div className="px-4 pt-4">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-text-primary">Players</h1>
         {!isLoading && typeof totalCount === "number" && (
           <p className="text-sm text-neutral mt-1">
             {totalCount.toLocaleString()}{" "}

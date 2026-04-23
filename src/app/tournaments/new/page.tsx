@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, User, Users } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/Button";
 import { fetchPlayersForPicker } from "@/lib/fetchPlayersForPicker";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryStaleTime";
@@ -137,9 +136,14 @@ export default function NewTournamentPage() {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-        <Link href="/" className="p-1">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="p-1"
+          aria-label="Back"
+        >
           <ArrowLeft size={22} className="text-text-primary" />
-        </Link>
+        </button>
         <div>
           <h1 className="text-lg font-bold text-text-primary">New Tournament</h1>
           <p className="text-xs text-neutral">Step {step} of 4</p>

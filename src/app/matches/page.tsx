@@ -170,8 +170,6 @@ export default function MatchesPage() {
 
   return (
     <div className="px-4 pt-8">
-      <h1 className="text-2xl font-bold text-text-primary mb-4">Matches</h1>
-
       <DateRangeFilter
         preset={datePreset}
         customFrom={customFrom}

@@ -1,13 +1,11 @@
-import Link from "next/link";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function RatingInfoPage() {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-4 pb-2 border-b border-border">
-        <Link href="/profile/settings" className="p-1" aria-label="Back">
-          <ArrowLeft size={22} className="text-text-primary" />
-        </Link>
+        <BackButton />
         <h1 className="text-lg font-bold text-text-primary">
           How ratings work
         </h1>

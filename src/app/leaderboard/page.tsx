@@ -18,9 +18,17 @@ export default async function LeaderboardPage() {
   const topThree = players.slice(0, 3);
 
   return (
-    <div className="px-4 pt-8">
-      <h1 className="text-2xl font-bold text-text-primary">Leaderboard</h1>
-      <p className="text-sm text-neutral mt-1 mb-6">Top ranked players</p>
+    <div className="px-4 pt-4">
+      <div className="mb-5">
+        <p className="text-sm font-semibold text-text-primary">
+          Who&apos;s ruling the table?
+        </p>
+        <p className="text-xs text-neutral mt-0.5">
+          {players.length}{" "}
+          {players.length === 1 ? "player" : "players"} ranked by Elo rating.
+          Win to climb, lose to fall.
+        </p>
+      </div>
 
       {topThree.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-6">
