@@ -13,12 +13,67 @@ export type MatchesListParams = {
   tournament: string | null;
   /** `SINGLES` | `DOUBLES` when set */
   matchType: string | null;
+  /** Players required on one side. */
+  teamPlayerIds: readonly string[];
+  /** Players required on the opposing side. */
+  opponentPlayerIds: readonly string[];
+  /** Lower bound for `createdAt` (inclusive). ISO string. */
+  fromIso: string | null;
+  /** Upper bound for `createdAt` (inclusive). ISO string. */
+  toIso: string | null;
   limit: number;
   offset: number;
 };
 
+function participantsOn(
+  playerIds: readonly string[],
+  team: "A" | "B"
+): Array<Record<string, unknown>> {
+  return playerIds.map((id) => ({
+    participants: { some: { playerId: id, team } },
+  }));
+}
+
+/**
+ * Match-side filter. If only one list is given, matches where those players
+ * sit on the same side. If both are given, matches where `team` is on one
+ * side AND `opponent` is on the other.
+ */
+function buildTeamOpponentFilter(
+  teamPlayerIds: readonly string[],
+  opponentPlayerIds: readonly string[]
+): Record<string, unknown> | null {
+  const hasTeam = teamPlayerIds.length > 0;
+  const hasOpp = opponentPlayerIds.length > 0;
+  if (!hasTeam && !hasOpp) return null;
+
+  const sides = [
+    { me: "A", other: "B" },
+    { me: "B", other: "A" },
+  ] as const;
+  return {
+    OR: sides.map(({ me, other }) => ({
+      AND: [
+        ...participantsOn(teamPlayerIds, me),
+        ...participantsOn(opponentPlayerIds, other),
+      ],
+    })),
+  };
+}
+
 export async function getMatchesListData(params: MatchesListParams) {
-  const { status, friendly, tournament, matchType, limit, offset } = params;
+  const {
+    status,
+    friendly,
+    tournament,
+    matchType,
+    teamPlayerIds,
+    opponentPlayerIds,
+    fromIso,
+    toIso,
+    limit,
+    offset,
+  } = params;
 
   const linkedRows = await prisma.tournamentMatch.findMany({
     where: { matchId: { not: null } },
@@ -38,6 +93,22 @@ export async function getMatchesListData(params: MatchesListParams) {
   if (friendly === "true") where.isFriendly = true;
   if (matchType === "SINGLES" || matchType === "DOUBLES") {
     where.type = matchType;
+  }
+
+  const teamFilter = buildTeamOpponentFilter(teamPlayerIds, opponentPlayerIds);
+  if (teamFilter) Object.assign(where, teamFilter);
+
+  const createdAt: Record<string, Date> = {};
+  if (fromIso) {
+    const d = new Date(fromIso);
+    if (!Number.isNaN(d.getTime())) createdAt.gte = d;
+  }
+  if (toIso) {
+    const d = new Date(toIso);
+    if (!Number.isNaN(d.getTime())) createdAt.lte = d;
+  }
+  if (Object.keys(createdAt).length > 0) {
+    where.createdAt = createdAt;
   }
 
   if (tournament === "exclude" && linkedMatchIds.length > 0) {

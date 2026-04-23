@@ -2,6 +2,27 @@
 
 import { MatchCard } from "@/components/MatchCard";
 
+function MatchCardSkeleton() {
+  return (
+    <div className="bg-surface rounded-xl border border-border p-4 animate-pulse">
+      <div className="flex items-center justify-between mb-3">
+        <div className="h-6 w-24 bg-border rounded-full" />
+        <div className="h-3 w-16 bg-border rounded" />
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="h-4 w-40 bg-border rounded" />
+          <div className="h-5 w-6 bg-border rounded" />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="h-4 w-32 bg-border rounded" />
+          <div className="h-5 w-6 bg-border rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export type MatchListItem = {
   id: string;
   type?: "SINGLES" | "DOUBLES";
@@ -24,7 +45,8 @@ export type MatchListItem = {
 export interface MatchListCardsProps {
   matches: MatchListItem[];
   isLoading?: boolean;
-  loadingMessage?: string;
+  /** How many skeleton rows to render while loading. */
+  skeletonCount?: number;
   emptyMessage?: string;
   linkPrefix?: string;
 }
@@ -32,14 +54,18 @@ export interface MatchListCardsProps {
 export function MatchListCards({
   matches,
   isLoading,
-  loadingMessage = "Loading matches...",
+  skeletonCount = 3,
   emptyMessage = "No matches found.",
   linkPrefix = "/matches",
 }: MatchListCardsProps) {
   if (isLoading) {
     return (
-      <div className="text-center py-12 text-neutral text-sm">
-        {loadingMessage}
+      <div className="space-y-3" aria-busy="true" aria-live="polite">
+        {Array.from({ length: skeletonCount }, (_, i) => `skel-${i}`).map(
+          (key) => (
+            <MatchCardSkeleton key={key} />
+          )
+        )}
       </div>
     );
   }

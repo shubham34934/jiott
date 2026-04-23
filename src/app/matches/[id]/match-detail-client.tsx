@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ChevronRight, Medal } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2, Medal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api-client";
@@ -121,6 +121,60 @@ function displayFirstName(displayName: string): string {
   const t = displayName.trim();
   if (!t) return "Unknown";
   return t.split(/\s+/)[0] ?? t;
+}
+
+function MatchDetailSkeleton({ returnTo }: { returnTo: string | null }) {
+  const teamCardCls =
+    "rounded-lg p-3 flex items-center justify-between animate-pulse";
+  const pillCls = "h-4 bg-border rounded";
+  const setRowCls =
+    "bg-surface border border-border rounded-xl h-16 animate-pulse";
+  return (
+    <div>
+      <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
+        <div className="flex items-center gap-3">
+          <MatchBackLink fallbackHref="/matches" returnTo={returnTo} />
+          <div className="space-y-1.5">
+            <div className="h-5 w-32 bg-border rounded animate-pulse" />
+            <div className="h-3 w-20 bg-border rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="h-6 w-20 bg-border rounded-full animate-pulse" />
+      </div>
+
+      <div className="px-4 pt-4">
+        <div className="bg-surface rounded-xl border-2 border-border p-4 mb-6 space-y-2">
+          <div className={teamCardCls}>
+            <div className="flex-1 space-y-2">
+              <div className={`${pillCls} w-32`} />
+              <div className={`${pillCls} w-20`} />
+            </div>
+            <div className="h-8 w-8 bg-border rounded" />
+          </div>
+          <div className={teamCardCls}>
+            <div className="flex-1 space-y-2">
+              <div className={`${pillCls} w-32`} />
+              <div className={`${pillCls} w-20`} />
+            </div>
+            <div className="h-8 w-8 bg-border rounded" />
+          </div>
+        </div>
+
+        <div className="h-5 w-12 bg-border rounded animate-pulse mb-3" />
+        <div className="space-y-3 mb-6">
+          <div className={setRowCls} />
+          <div className={setRowCls} />
+          <div className={setRowCls} />
+        </div>
+
+        <div className="h-5 w-28 bg-border rounded animate-pulse mb-3" />
+        <div className="space-y-3">
+          <div className="h-10 bg-surface border border-border rounded animate-pulse" />
+          <div className="h-10 bg-surface border border-border rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function MatchDetailPageClient({
@@ -261,11 +315,7 @@ export function MatchDetailPageClient({
   });
 
   if (isLoading || !match) {
-    return (
-      <div className="px-4 pt-8 text-center text-neutral text-sm">
-        Loading...
-      </div>
-    );
+    return <MatchDetailSkeleton returnTo={returnTo} />;
   }
 
   const teamA = match.participants.filter((p) => p.team === "A");
@@ -313,6 +363,24 @@ export function MatchDetailPageClient({
 
   return (
     <div>
+      {completeMatch.isPending && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface px-6 py-5 border border-border shadow-lg">
+            <Loader2
+              size={32}
+              className="animate-spin text-primary"
+              aria-hidden
+            />
+            <p className="text-sm font-medium text-text-primary">
+              Completing match...
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <div className="flex items-center gap-3">
           <MatchBackLink fallbackHref="/matches" returnTo={returnTo} />

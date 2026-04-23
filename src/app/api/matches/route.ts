@@ -29,12 +29,37 @@ export async function GET(req: Request) {
   const rawOffset = parseInt(searchParams.get("offset") || "0", 10);
   const offset = Math.max(0, Number.isNaN(rawOffset) ? 0 : rawOffset);
 
+  const parseIds = (raw: string | null): string[] =>
+    (raw ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+      )
+      .slice(0, 2);
+  const teamPlayerIds = parseIds(searchParams.get("team"));
+  const opponentPlayerIds = parseIds(searchParams.get("opponent")).filter(
+    (id) => !teamPlayerIds.includes(id)
+  );
+
+  const parseIsoDate = (raw: string | null): string | null => {
+    if (!raw) return null;
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  };
+  const fromIso = parseIsoDate(searchParams.get("from"));
+  const toIso = parseIsoDate(searchParams.get("to"));
+
   const listParams = {
     status,
     friendly,
     tournament,
     matchType:
       matchType === "SINGLES" || matchType === "DOUBLES" ? matchType : null,
+    teamPlayerIds,
+    opponentPlayerIds,
+    fromIso,
+    toIso,
     limit,
     offset,
   };
