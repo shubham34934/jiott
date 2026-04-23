@@ -59,6 +59,7 @@ export async function POST(req: Request) {
         name,
         password: hashed,
         emailVerified: null,
+        player: { create: {} },
       },
     });
   } catch (e) {

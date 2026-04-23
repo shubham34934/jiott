@@ -21,6 +21,7 @@ interface Participant {
   player: {
     id: string;
     rating: number;
+    userId?: string;
     user: { name: string | null; image: string | null };
   };
 }
@@ -52,18 +53,28 @@ interface TournamentContext {
   position: number;
 }
 
+export type MatchStatusUI =
+  | "AWAITING_ACCEPTANCE"
+  | "ONGOING"
+  | "AWAITING_CONFIRMATION"
+  | "COMPLETED"
+  | "DISPUTED"
+  | "DECLINED";
+
 interface MatchData {
   id: string;
   type: string;
-  status: "ONGOING" | "COMPLETED" | "DISPUTED";
+  status: MatchStatusUI;
   totalSets: number;
   pointsPerSet: number;
   isFriendly: boolean;
+  createdBy: string;
   participants: Participant[];
   sets: SetData[];
   eventLogs: EventLogEntry[];
   createdAt: string;
   tournamentContext?: TournamentContext | null;
+  pendingActionBy?: string | null;
 }
 
 function ShareButton({ id, text }: { id: string; text: string }) {
@@ -222,6 +233,7 @@ export function MatchDetailPageClient({ id }: { id: string }) {
   const router = useRouter();
   const { data: session } = useAppSession();
   const currentPlayerId = session?.user?.playerId ?? null;
+  const currentUserId = session?.user?.id ?? null;
 
   const { data: match, isLoading } = useQuery<MatchData>({
     queryKey: ["match", id],
@@ -302,51 +314,96 @@ export function MatchDetailPageClient({ id }: { id: string }) {
     },
   });
 
-  const completeMatch = useMutation({
-    mutationFn: async () => {
-      const r = await fetch(`/api/matches/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete" }),
+  const invalidateAfterMutation = () => {
+    const m = queryClient.getQueryData<MatchData>(["match", id]);
+    queryClient.invalidateQueries({ queryKey: ["match", id] });
+    queryClient.invalidateQueries({ queryKey: ["matches"] });
+    queryClient.invalidateQueries({ queryKey: ["players"] });
+    if (m?.tournamentContext?.id) {
+      queryClient.invalidateQueries({
+        queryKey: ["tournament", m.tournamentContext.id],
       });
-      const body = (await r.json()) as { success?: boolean; error?: string };
-      if (!r.ok) {
-        throw new Error(
-          typeof body.error === "string" ? body.error : "Failed to complete match"
-        );
-      }
-      return body;
-    },
+    }
+    for (const p of m?.participants ?? []) {
+      queryClient.invalidateQueries({ queryKey: ["player", p.player.id] });
+    }
+    router.refresh();
+  };
+
+  const callMatchAction = async (
+    path: string,
+    body?: Record<string, unknown>
+  ) => {
+    const r = await fetch(`/api/matches/${id}${path}`, {
+      method: body ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = (await r.json().catch(() => null)) as
+      | { success?: boolean; error?: string }
+      | null;
+    if (!r.ok) {
+      throw new Error(data?.error ?? "Something went wrong");
+    }
+    return data;
+  };
+
+  const completeMatch = useMutation({
+    mutationFn: () => callMatchAction("", { action: "complete" }),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["match", id] });
       const previous = queryClient.getQueryData<MatchData>(["match", id]);
-      queryClient.setQueryData<MatchData>(["match", id], (old) => {
-        if (!old || old.status !== "ONGOING") return old;
-        return { ...old, status: "COMPLETED" };
-      });
+      queryClient.setQueryData<MatchData>(["match", id], (old) =>
+        old && old.status === "ONGOING"
+          ? { ...old, status: "AWAITING_CONFIRMATION" }
+          : old
+      );
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) {
-        queryClient.setQueryData(["match", id], ctx.previous);
-      }
+      if (ctx?.previous) queryClient.setQueryData(["match", id], ctx.previous);
     },
-    onSuccess: () => {
-      const m = queryClient.getQueryData<MatchData>(["match", id]);
-      queryClient.invalidateQueries({ queryKey: ["match", id] });
-      queryClient.invalidateQueries({ queryKey: ["matches"] });
-      queryClient.invalidateQueries({ queryKey: ["players"] });
-      if (m?.tournamentContext?.id) {
-        queryClient.invalidateQueries({
-          queryKey: ["tournament", m.tournamentContext.id],
-        });
-      }
-      for (const p of m?.participants ?? []) {
-        queryClient.invalidateQueries({ queryKey: ["player", p.player.id] });
-      }
-      router.refresh();
-    },
+    onSuccess: invalidateAfterMutation,
   });
+
+  const acceptChallenge = useMutation({
+    mutationFn: () => callMatchAction("/accept"),
+    onSuccess: invalidateAfterMutation,
+  });
+
+  const declineChallenge = useMutation({
+    mutationFn: () => callMatchAction("/decline"),
+    onSuccess: invalidateAfterMutation,
+  });
+
+  const confirmMatch = useMutation({
+    mutationFn: () => callMatchAction("/confirm"),
+    onSuccess: invalidateAfterMutation,
+  });
+
+  const reopenMatch = useMutation({
+    mutationFn: () => callMatchAction("/reopen"),
+    onSuccess: invalidateAfterMutation,
+  });
+
+  const anyPending =
+    completeMatch.isPending ||
+    acceptChallenge.isPending ||
+    declineChallenge.isPending ||
+    confirmMatch.isPending ||
+    reopenMatch.isPending;
+
+  const firstMutationError = (() => {
+    const m = [
+      updateScore,
+      completeMatch,
+      acceptChallenge,
+      declineChallenge,
+      confirmMatch,
+      reopenMatch,
+    ].find((x) => x.isError);
+    return m?.error instanceof Error ? m.error.message : null;
+  })();
 
   if (isLoading || !match) {
     return <MatchDetailSkeleton />;
@@ -377,6 +434,11 @@ export function MatchDetailPageClient({ id }: { id: string }) {
     match.status === "COMPLETED" && teamBSetsWon > teamASetsWon;
 
   const date = formatDisplayDate(match.createdAt);
+  const time = new Date(match.createdAt).toLocaleTimeString("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 
   const handleSaveScore = (
     setNumber: number,
@@ -391,16 +453,43 @@ export function MatchDetailPageClient({ id }: { id: string }) {
     return teamASetsWon >= requiredWins || teamBSetsWon >= requiredWins;
   };
 
-  const isParticipant =
-    currentPlayerId != null &&
-    match.participants.some((p) => p.player.id === currentPlayerId);
+  const viewerParticipant =
+    currentPlayerId != null
+      ? match.participants.find((p) => p.player.id === currentPlayerId) ?? null
+      : null;
+  const isParticipant = viewerParticipant != null;
+  const viewerTeam = viewerParticipant?.team ?? null;
+
+  const creatorTeam =
+    match.participants.find((p) => p.player.userId === match.createdBy)?.team ??
+    null;
+  const proposerUserId = match.pendingActionBy ?? match.createdBy;
+  const proposerTeam =
+    match.participants.find((p) => p.player.userId === proposerUserId)?.team ??
+    null;
+
+  const viewerIsOnCreatorTeam =
+    creatorTeam != null && viewerTeam === creatorTeam;
+  const viewerIsOnProposerTeam =
+    proposerTeam != null && viewerTeam === proposerTeam;
+  // If the creator isn't a participant, any participant may accept/decline —
+  // we want the resolver buttons to show for every participant.
+  const creatorIsPlaying = creatorTeam != null;
+
+  const viewerIsProposer =
+    currentUserId != null && match.pendingActionBy === currentUserId;
+  const canEditScores =
+    isParticipant &&
+    (match.status === "ONGOING" ||
+      match.status === "COMPLETED" ||
+      (match.status === "AWAITING_CONFIRMATION" && viewerIsProposer));
 
   const canShare = match.status === "COMPLETED";
   const shareText = `${teamANames} ${teamASetsWon}-${teamBSetsWon} ${teamBNames} — JIotableTennis`;
 
   return (
     <div>
-      {completeMatch.isPending && (
+      {anyPending && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm"
           role="status"
@@ -412,9 +501,7 @@ export function MatchDetailPageClient({ id }: { id: string }) {
               className="animate-spin text-primary"
               aria-hidden
             />
-            <p className="text-sm font-medium text-text-primary">
-              Completing match...
-            </p>
+            <p className="text-sm font-medium text-text-primary">Working...</p>
           </div>
         </div>
       )}
@@ -422,8 +509,13 @@ export function MatchDetailPageClient({ id }: { id: string }) {
         <div className="flex items-center gap-3">
           <MatchBackLink />
           <div>
-            <h1 className="text-lg font-bold text-text-primary">Match Details</h1>
-            <p className="text-xs text-neutral">{date}</p>
+            <h1 className="text-sm font-semibold text-text-primary">
+              {date} · {time}
+            </h1>
+            <p className="text-[11px] text-neutral">
+              {match.type}
+              {match.isFriendly ? " · Friendly" : " · Ranked"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -532,13 +624,9 @@ export function MatchDetailPageClient({ id }: { id: string }) {
           </div>
         </div>
 
-        {(updateScore.isError || completeMatch.isError) && (
+        {firstMutationError && (
           <p className="text-sm text-danger mb-3" role="alert">
-            {updateScore.isError && updateScore.error instanceof Error
-              ? updateScore.error.message
-              : completeMatch.error instanceof Error
-                ? completeMatch.error.message
-                : "Something went wrong"}
+            {firstMutationError}
           </p>
         )}
 
@@ -553,7 +641,7 @@ export function MatchDetailPageClient({ id }: { id: string }) {
               pointsPerSet={match.pointsPerSet}
               teamAName={teamANames}
               teamBName={teamBNames}
-              editable={match.status === "ONGOING" && isParticipant}
+              editable={canEditScores}
               onSaveScore={(a, b) =>
                 handleSaveScore(set.setNumber, a, b)
               }
@@ -561,19 +649,24 @@ export function MatchDetailPageClient({ id }: { id: string }) {
           ))}
         </div>
 
-        {match.status === "ONGOING" && canComplete() && isParticipant && (
-          <Button
-            fullWidth
-            size="lg"
-            onClick={() => completeMatch.mutate()}
-            disabled={completeMatch.isPending}
-            className="mb-6"
-          >
-            {completeMatch.isPending
-              ? "Completing..."
-              : "Complete Match"}
-          </Button>
-        )}
+        <ActionPanel
+          match={match}
+          isParticipant={isParticipant}
+          viewerIsOnCreatorTeam={viewerIsOnCreatorTeam}
+          viewerIsOnProposerTeam={viewerIsOnProposerTeam}
+          creatorIsPlaying={creatorIsPlaying}
+          canComplete={canComplete()}
+          teamASetsWon={teamASetsWon}
+          teamBSetsWon={teamBSetsWon}
+          teamANames={teamANames}
+          teamBNames={teamBNames}
+          onAccept={() => acceptChallenge.mutate()}
+          onDecline={() => declineChallenge.mutate()}
+          onComplete={() => completeMatch.mutate()}
+          onConfirm={() => confirmMatch.mutate()}
+          onReopen={() => reopenMatch.mutate()}
+          busy={anyPending}
+        />
 
         <h2 className="text-lg font-bold mb-3 text-text-primary">Event History</h2>
         <div className="space-y-0 mb-8">
@@ -582,8 +675,16 @@ export function MatchDetailPageClient({ id }: { id: string }) {
             let description = log.action;
             const newVal = log.newValue as Record<string, unknown> | null;
 
-            if (log.action === "COMPLETED") {
+            if (log.action === "COMPLETED" || log.action === "COMPLETION_CONFIRMED") {
               description = "Match completed";
+            } else if (log.action === "COMPLETION_PROPOSED") {
+              description = "Completion proposed — awaiting confirmation";
+            } else if (log.action === "COMPLETION_REOPENED") {
+              description = "Match re-opened";
+            } else if (log.action === "CHALLENGE_ACCEPTED") {
+              description = "Challenge accepted";
+            } else if (log.action === "CHALLENGE_DECLINED") {
+              description = "Challenge declined";
             } else if (log.action === "SCORE_UPDATED" && newVal) {
               description = `Set ${newVal.setNumber}: ${newVal.teamAScore}-${newVal.teamBScore}`;
             } else if (log.action === "CREATED") {
@@ -610,6 +711,172 @@ export function MatchDetailPageClient({ id }: { id: string }) {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ActionPanel({
+  match,
+  isParticipant,
+  viewerIsOnCreatorTeam,
+  viewerIsOnProposerTeam,
+  creatorIsPlaying,
+  canComplete,
+  teamASetsWon,
+  teamBSetsWon,
+  teamANames,
+  teamBNames,
+  onAccept,
+  onDecline,
+  onComplete,
+  onConfirm,
+  onReopen,
+  busy,
+}: {
+  match: MatchData;
+  isParticipant: boolean;
+  viewerIsOnCreatorTeam: boolean;
+  viewerIsOnProposerTeam: boolean;
+  creatorIsPlaying: boolean;
+  canComplete: boolean;
+  teamASetsWon: number;
+  teamBSetsWon: number;
+  teamANames: string;
+  teamBNames: string;
+  onAccept: () => void;
+  onDecline: () => void;
+  onComplete: () => void;
+  onConfirm: () => void;
+  onReopen: () => void;
+  busy: boolean;
+}) {
+  if (!isParticipant) return null;
+
+  if (match.status === "AWAITING_ACCEPTANCE") {
+    // When the creator is also a player, their team waits for the opposing
+    // team to accept. When the creator isn't playing, every participant is
+    // expected to accept — so show the Accept/Decline buttons regardless.
+    if (creatorIsPlaying && viewerIsOnCreatorTeam) {
+      return (
+        <Banner tone="info">
+          Waiting for the opponent to accept the challenge.
+        </Banner>
+      );
+    }
+    const prompt = creatorIsPlaying
+      ? "You've been challenged to a match. Do you accept?"
+      : "A match has been set up for you. Do you accept?";
+    return (
+      <div className="mb-6 space-y-3">
+        <Banner tone="info">{prompt}</Banner>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="secondary"
+            fullWidth
+            size="lg"
+            onClick={onDecline}
+            disabled={busy}
+          >
+            Decline
+          </Button>
+          <Button fullWidth size="lg" onClick={onAccept} disabled={busy}>
+            Accept
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (match.status === "ONGOING") {
+    if (canComplete) {
+      return (
+        <Button
+          fullWidth
+          size="lg"
+          onClick={onComplete}
+          disabled={busy}
+          className="mb-6"
+        >
+          Complete Match
+        </Button>
+      );
+    }
+    return null;
+  }
+
+  if (match.status === "AWAITING_CONFIRMATION") {
+    const winningSide =
+      teamASetsWon > teamBSetsWon ? teamANames : teamBNames;
+    if (viewerIsOnProposerTeam) {
+      return (
+        <Banner tone="warning">
+          Waiting for the opponent to confirm: {winningSide} won{" "}
+          {Math.max(teamASetsWon, teamBSetsWon)}-
+          {Math.min(teamASetsWon, teamBSetsWon)}.
+        </Banner>
+      );
+    }
+    return (
+      <div className="mb-6 space-y-3">
+        <Banner tone="warning">
+          {winningSide} is marked as the winner ({teamASetsWon}-{teamBSetsWon}).
+          Confirm the result or re-open to edit.
+        </Banner>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="secondary"
+            fullWidth
+            size="lg"
+            onClick={onReopen}
+            disabled={busy}
+          >
+            Re-open
+          </Button>
+          <Button fullWidth size="lg" onClick={onConfirm} disabled={busy}>
+            Confirm
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (match.status === "COMPLETED") {
+    return (
+      <Banner tone="muted">
+        This match is complete. Editing any score will ask the opponent to
+        re-confirm.
+      </Banner>
+    );
+  }
+
+  if (match.status === "DECLINED") {
+    return <Banner tone="danger">This challenge was declined.</Banner>;
+  }
+
+  return null;
+}
+
+function Banner({
+  tone,
+  children,
+}: {
+  tone: "info" | "warning" | "muted" | "danger";
+  children: React.ReactNode;
+}) {
+  const cls =
+    tone === "info"
+      ? "bg-primary/10 border-primary/35 text-text-primary"
+      : tone === "warning"
+        ? "bg-warning/10 border-warning/35 text-text-primary"
+        : tone === "danger"
+          ? "bg-danger/10 border-danger/35 text-text-primary"
+          : "bg-surface border-border text-neutral";
+  return (
+    <div
+      className={`mb-6 rounded-xl border px-4 py-3 text-sm ${cls}`}
+      role="status"
+    >
+      {children}
     </div>
   );
 }

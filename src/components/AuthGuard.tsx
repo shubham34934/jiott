@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
-import { useAppSession } from "@/hooks/use-app-session";
 
 /** Paths that render without a signed-in user. */
 const PUBLIC_PATH_PREFIXES = ["/auth", "/privacy", "/terms"];
@@ -17,7 +17,7 @@ function isPublicPath(pathname: string): boolean {
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { status } = useAppSession();
+  const { status } = useSession();
   const isPublic = isPublicPath(pathname);
 
   useEffect(() => {

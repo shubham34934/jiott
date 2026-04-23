@@ -89,7 +89,16 @@ export async function getMatchesListData(params: MatchesListParams) {
   const linkedSet = new Set(linkedMatchIds);
 
   const where: Record<string, unknown> = {};
-  if (status) where.status = status as "ONGOING" | "COMPLETED";
+  if (
+    status === "ONGOING" ||
+    status === "COMPLETED" ||
+    status === "DISPUTED" ||
+    status === "AWAITING_ACCEPTANCE" ||
+    status === "AWAITING_CONFIRMATION" ||
+    status === "DECLINED"
+  ) {
+    where.status = status;
+  }
   if (friendly === "true") where.isFriendly = true;
   if (matchType === "SINGLES" || matchType === "DOUBLES") {
     where.type = matchType;

@@ -26,6 +26,21 @@ model User {
   eventLogsUpdated   EventLog[]    @relation("EventLogUpdatedBy")
   feedbacks          Feedback[]
   pushSubscriptions  PushSubscription[]
+  notifications      Notification[]
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String?
+  body      String
+  url       String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model PushSubscription {
@@ -137,6 +152,9 @@ enum MatchStatus {
   ONGOING
   COMPLETED
   DISPUTED
+  AWAITING_ACCEPTANCE
+  AWAITING_CONFIRMATION
+  DECLINED
 }
 
 model Match {

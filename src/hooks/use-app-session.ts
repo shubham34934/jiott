@@ -13,48 +13,45 @@ export type AppSessionUser = {
   image: string | null;
 };
 
-/** NextAuth session + `/api/me` (Prisma player id for APIs). */
+/**
+ * NextAuth session → AppSessionUser. `playerId` is normally embedded in the JWT
+ * so no DB/API hit is needed. For legacy JWTs without it we fall back to /api/me.
+ */
 export function useAppSession() {
   const queryClient = useQueryClient();
   const { data: authData, status: authStatus, update } = useSession();
 
+  const sessionUser = authData?.user;
+  const hasAuthId = !!sessionUser?.id;
+  const jwtPlayerId = sessionUser?.playerId ?? null;
+
+  // Only runs for legacy users whose JWT doesn't carry playerId yet.
   const meQuery = useQuery({
-    queryKey: ["me", authData?.user?.id],
+    queryKey: ["me", sessionUser?.id],
     queryFn: async () => {
       const res = await apiGet("/api/me", { credentials: "include" });
       return res.json() as Promise<AppSessionUser | null>;
     },
-    enabled: !!authData?.user?.id,
+    enabled: hasAuthId && !jwtPlayerId,
     staleTime: QUERY_STALE_TIME_MS,
-    retry: 4,
+    retry: 2,
     retryDelay: (attempt) => Math.min(1500, 400 * 2 ** attempt),
   });
 
-  const hasAuthUser = !!authData?.user?.id;
-
-  const mePayload = meQuery.data;
-  const hasMe =
-    mePayload != null &&
-    typeof mePayload === "object" &&
-    "playerId" in mePayload;
+  const effectivePlayerId = jwtPlayerId ?? meQuery.data?.playerId ?? null;
 
   const loading =
     authStatus === "loading" ||
-    (hasAuthUser &&
-      !meQuery.isError &&
-      !hasMe &&
-      (meQuery.isPending || meQuery.isFetching || meQuery.isLoading));
+    (hasAuthId && !effectivePlayerId && meQuery.isPending);
 
-  const authUser = authData?.user;
   const user =
-    authUser && hasMe && mePayload && typeof mePayload === "object"
+    sessionUser && effectivePlayerId
       ? {
-          id: (mePayload as AppSessionUser).id,
-          playerId: (mePayload as AppSessionUser).playerId,
-          name: (mePayload as AppSessionUser).name ?? authUser.name,
-          email: (mePayload as AppSessionUser).email ?? authUser.email ?? "",
-          image:
-            (mePayload as AppSessionUser).image ?? authUser.image ?? null,
+          id: sessionUser.id as string,
+          playerId: effectivePlayerId,
+          name: sessionUser.name ?? null,
+          email: sessionUser.email ?? "",
+          image: sessionUser.image ?? null,
         }
       : null;
 

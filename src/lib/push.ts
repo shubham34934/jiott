@@ -13,11 +13,22 @@ function ensureConfigured() {
   return true;
 }
 
+export type NotificationType =
+  | "challenge"
+  | "challenge_accepted"
+  | "challenge_declined"
+  | "completion_proposed"
+  | "completion_confirmed"
+  | "completion_reopened"
+  | "generic";
+
 export interface PushPayload {
   /** One-line message shown in the notification. */
   body: string;
   /** Path opened when the user taps the notification. */
   url?: string;
+  /** Used by the in-app list to pick an icon. */
+  type?: NotificationType;
 }
 
 export interface SendPushResult {
@@ -32,8 +43,9 @@ export async function sendPushToUsers(
   payload: PushPayload
 ): Promise<SendPushResult> {
   const unique = [...new Set(userIds.filter(Boolean))];
+  await persistNotifications(unique, payload);
   const results = await Promise.all(
-    unique.map((id) => sendPushToUser(id, payload))
+    unique.map((id) => pushWebOnly(id, payload))
   );
   return results.reduce<SendPushResult>(
     (acc, r) => ({
@@ -45,8 +57,37 @@ export async function sendPushToUsers(
   );
 }
 
-/** Send a notification to every registered device of a user. Removes dead subscriptions. */
+/** Persist one in-app `Notification` row per recipient. */
+async function persistNotifications(
+  userIds: readonly string[],
+  payload: PushPayload
+): Promise<void> {
+  if (userIds.length === 0) return;
+  try {
+    await prisma.notification.createMany({
+      data: userIds.map((userId) => ({
+        userId,
+        type: payload.type ?? null,
+        body: payload.body,
+        url: payload.url ?? null,
+      })),
+    });
+  } catch (e) {
+    console.error("[notifications] createMany failed", e);
+  }
+}
+
+/** Send a notification to every registered device of a user + record it in-app. */
 export async function sendPushToUser(
+  userId: string,
+  payload: PushPayload
+): Promise<SendPushResult> {
+  await persistNotifications([userId], payload);
+  return pushWebOnly(userId, payload);
+}
+
+/** Raw Web Push fan-out (no Notification row). Used internally after persistence. */
+async function pushWebOnly(
   userId: string,
   payload: PushPayload
 ): Promise<SendPushResult> {

@@ -27,6 +27,18 @@ function getPoolMax(): number {
   return process.env.NODE_ENV === "production" ? 1 : 3;
 }
 
+function isLocalOrPlainPg(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const host = u.hostname;
+    // Neon hosts always end with .neon.tech. Anything else (including
+    // localhost / 127.0.0.1 / LAN IPs) should use the built-in Prisma driver.
+    return !host.endsWith(".neon.tech");
+  } catch {
+    return true;
+  }
+}
+
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL?.trim();
   if (
@@ -36,6 +48,12 @@ function createPrismaClient(): PrismaClient {
     throw new Error(
       "DATABASE_URL must be a Postgres URI (postgresql://… or postgres://…)."
     );
+  }
+
+  // For local / non-Neon Postgres, skip the Neon WebSocket adapter and let
+  // Prisma's native driver talk to the DB over TCP:5432.
+  if (isLocalOrPlainPg(url)) {
+    return new PrismaClient();
   }
 
   const adapter = new PrismaNeon({

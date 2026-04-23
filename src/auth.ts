@@ -7,6 +7,10 @@ class EmailNotVerified extends CredentialsSignin {
   code = "email_not_verified";
 }
 
+class UserNotFound extends CredentialsSignin {
+  code = "user_not_found";
+}
+
 const authSecret =
   process.env.AUTH_SECRET?.trim() ||
   process.env.NEXTAUTH_SECRET?.trim() ||
@@ -40,18 +44,32 @@ const authConfig = {
           return null;
         }
         const email = emailRaw.trim().toLowerCase();
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user?.password) return null;
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { player: { select: { id: true } } },
+        });
+        if (!user?.password) {
+          throw new UserNotFound();
+        }
         const ok = await verifyPassword(passwordRaw, user.password);
         if (!ok) return null;
         if (!user.emailVerified) {
           throw new EmailNotVerified();
+        }
+        let playerId = user.player?.id;
+        if (!playerId) {
+          const created = await prisma.player.create({
+            data: { userId: user.id },
+            select: { id: true },
+          });
+          playerId = created.id;
         }
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           image: user.image,
+          playerId,
         };
       },
     }),
@@ -60,11 +78,15 @@ const authConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user?.id) token.id = user.id;
+      if (user?.playerId) token.playerId = user.playerId;
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
+      if (session.user) {
+        if (typeof token.id === "string") session.user.id = token.id;
+        if (typeof token.playerId === "string") {
+          session.user.playerId = token.playerId;
+        }
       }
       return session;
     },

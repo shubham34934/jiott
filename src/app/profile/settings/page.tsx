@@ -19,7 +19,6 @@ export default function SettingsPage() {
   const { signOut } = useAppSession();
   const push = usePushNotifications();
   const [busy, setBusy] = useState(false);
-  const [flash, setFlash] = useState<string | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -28,24 +27,11 @@ export default function SettingsPage() {
 
   const toggleNotifications = async () => {
     setBusy(true);
-    setFlash(null);
     if (push.status === "subscribed") {
       await push.unsubscribe();
     } else {
       await push.subscribe();
     }
-    setBusy(false);
-  };
-
-  const handleTest = async () => {
-    setBusy(true);
-    setFlash(null);
-    const sent = await push.sendTest();
-    setFlash(
-      sent > 0
-        ? `Sent to ${sent} device${sent === 1 ? "" : "s"}.`
-        : "Nothing was sent — check the logs."
-    );
     setBusy(false);
   };
 
@@ -130,25 +116,9 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {push.status === "subscribed" && (
-              <button
-                type="button"
-                onClick={handleTest}
-                disabled={busy}
-                className="mt-3 w-full text-xs font-medium text-primary py-2 rounded-lg border border-dashed border-primary/45 hover:bg-primary/10 disabled:opacity-50"
-              >
-                Send test notification
-              </button>
-            )}
-
             {push.error && (
               <p className="mt-2 text-xs text-danger" role="alert">
                 {push.error}
-              </p>
-            )}
-            {flash && (
-              <p className="mt-2 text-xs text-neutral" role="status">
-                {flash}
               </p>
             )}
             {push.status === "blocked" && (

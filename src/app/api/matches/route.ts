@@ -109,6 +109,7 @@ export async function POST(req: Request) {
   const created = await prisma.match.create({
     data: {
       type,
+      status: "AWAITING_ACCEPTANCE",
       totalSets: totalSets || 3,
       pointsPerSet: pointsPerSet || 11,
       isFriendly: isFriendly || false,
@@ -148,15 +149,27 @@ export async function POST(req: Request) {
 
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
 
-  const starterLabel = firstName(actor.name);
+  const challengerLabel = firstName(actor.name);
+  const creatorTeam = match.participants.find(
+    (p) => p.player.userId === actor.prismaUserId
+  )?.team;
+  // If the creator is one of the players → notify only the opposing team.
+  // If the creator isn't playing → notify every participant.
   const notifyUserIds = match.participants
+    .filter((p) =>
+      creatorTeam ? p.team !== creatorTeam : true
+    )
     .map((p) => p.player.userId)
     .filter((uid): uid is string => !!uid && uid !== actor.prismaUserId);
   if (notifyUserIds.length > 0) {
+    const body = creatorTeam
+      ? `${challengerLabel} challenged you — tap to accept`
+      : `${challengerLabel} set up a match for you — tap to accept`;
     after(() =>
       sendPushToUsers(notifyUserIds, {
-        body: `${starterLabel} started a match with you`,
+        body,
         url: `/matches/${match.id}`,
+        type: "challenge",
       })
     );
   }

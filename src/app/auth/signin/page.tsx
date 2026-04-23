@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { useEffect, useState, Suspense } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { safeReturnPath } from "@/lib/safe-return-path";
 import { waitForAuthSessionClient } from "@/lib/wait-for-auth-session-client";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,6 +15,14 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const returnTo =
     safeReturnPath(searchParams.get("callbackUrl")) ?? "/profile";
+  const { status } = useSession();
+
+  // If the session fetch on page load reports an existing user, skip the form.
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace(returnTo);
+    }
+  }, [status, returnTo, router]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +38,35 @@ function SignInForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
+      // Pre-check: does the email even exist? NextAuth's CredentialsSignin
+      // error code doesn't always propagate to the client reliably, so we
+      // disambiguate "no account" vs "wrong password" on our own.
+      const checkRes = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const { exists, verified } = (await checkRes
+        .json()
+        .catch(() => ({ exists: false, verified: false }))) as {
+        exists: boolean;
+        verified: boolean;
+      };
+      if (!exists) {
+        setLoading(false);
+        setError(
+          "No account found with this email. Please register first."
+        );
+        return;
+      }
+      if (!verified) {
+        setLoading(false);
+        router.push(
+          `/auth/verify?email=${encodeURIComponent(normalizedEmail)}`
+        );
+        return;
+      }
+
       const res = await signIn("credentials", {
         email: normalizedEmail,
         password,
@@ -37,19 +74,12 @@ function SignInForm() {
         callbackUrl: returnTo,
       });
 
-      if (!res?.ok) {
+      // NextAuth v5 beta can return { ok: true, error: "CredentialsSignin" }
+      // on a failed credentials sign-in — treat any `error` as failure.
+      const failed = !res || !res.ok || !!res.error;
+      if (failed) {
         setLoading(false);
-        if (res?.code === "email_not_verified") {
-          router.push(
-            `/auth/verify?email=${encodeURIComponent(normalizedEmail)}`
-          );
-          return;
-        }
-        setError(
-          res?.error === "CredentialsSignin"
-            ? "Invalid email or password."
-            : "Sign in failed."
-        );
+        setError("Wrong password. Please try again.");
         return;
       }
 

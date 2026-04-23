@@ -6,6 +6,10 @@ import { usePathname } from "next/navigation";
 import { Bell, Menu } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { AppSidebar } from "@/components/AppSidebar";
+import {
+  NotificationsPanel,
+  useNotifications,
+} from "@/components/NotificationsSheet";
 import { useAppSession } from "@/hooks/use-app-session";
 
 const TOP_LEVEL_ROUTES = new Set<string>([
@@ -33,7 +37,10 @@ function shouldShow(pathname: string): boolean {
 export function AppHeader() {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { data: session } = useAppSession();
+  const { data: notifs } = useNotifications();
+  const unreadCount = notifs?.unreadCount ?? 0;
 
   if (!shouldShow(pathname)) return null;
 
@@ -59,13 +66,27 @@ export function AppHeader() {
             </h1>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Link
-              href="/profile/settings"
-              aria-label="Notification settings"
-              className="p-2 text-text-primary rounded-lg hover:bg-surface-raised/80"
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen(true)}
+              aria-label={
+                unreadCount > 0
+                  ? `Open notifications (${unreadCount} unread)`
+                  : "Open notifications"
+              }
+              aria-haspopup="dialog"
+              className="relative p-2 text-text-primary rounded-lg hover:bg-surface-raised/80"
             >
               <Bell size={20} />
-            </Link>
+              {unreadCount > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute top-1 right-1 flex items-center justify-center h-[16px] min-w-[16px] px-[3px] rounded-full bg-danger text-white text-[9px] font-bold leading-none tabular-nums ring-2 ring-surface"
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
             {session ? (
               <Link
                 href="/profile"
@@ -99,6 +120,10 @@ export function AppHeader() {
       <AppSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+      />
+      <NotificationsPanel
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
       />
     </>
   );

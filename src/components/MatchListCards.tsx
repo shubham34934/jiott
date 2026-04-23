@@ -26,7 +26,7 @@ function MatchCardSkeleton() {
 export type MatchListItem = {
   id: string;
   type?: "SINGLES" | "DOUBLES";
-  status: "ONGOING" | "COMPLETED" | "DISPUTED";
+  status: string;
   isFriendly?: boolean;
   isTournamentMatch?: boolean;
   tournamentName?: string | null;

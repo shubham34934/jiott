@@ -1,4 +1,4 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { MATCH_LIST_CACHE_TAG } from "@/lib/get-matches-list";
@@ -7,15 +7,12 @@ import { PLAYERS_LIST_CACHE_TAG } from "@/lib/get-players-list";
 import { getApiActor } from "@/lib/get-api-actor";
 import { getCompletedMatchOutcome } from "@/lib/matchWinningTeam";
 import { applyReplayedRankedStats } from "@/lib/replay-ranked-stats";
-import { ensureTournamentPlayableMatch } from "@/lib/ensureTournamentPlayableMatch";
-import { syncTournamentCompletionAfterMatch } from "@/lib/syncTournamentCompletion";
 import {
   matchParticipantWithPlayerForApi,
   mergeRankedRatingDeltasForMatch,
 } from "@/lib/match-participant-queries";
 import { JSON_NO_STORE_HEADERS } from "@/lib/http-cache";
-import { sendPushToUser } from "@/lib/push";
-import { firstNamesJoined } from "@/lib/displayName";
+import { notifyCompletionProposed } from "@/lib/match-notifications";
 
 export const maxDuration = 60;
 
@@ -88,11 +85,19 @@ export async function GET(
     updatedByUser: { name: nameByUserId.get(log.updatedBy) ?? null },
   }));
 
+  // Latest proposer for "awaiting confirmation" state → used by the UI to
+  // decide who's on the "confirm" side vs the "waiting" side.
+  const latestProposal = match.eventLogs.find(
+    (l) => l.action === "COMPLETION_PROPOSED"
+  );
+  const pendingActionBy = latestProposal?.updatedBy ?? match.createdBy;
+
   return NextResponse.json(
     {
       ...match,
       eventLogs,
       tournamentContext,
+      pendingActionBy,
     },
     { headers: JSON_NO_STORE_HEADERS }
   );
@@ -111,7 +116,7 @@ export async function DELETE(
 
   const match = await prisma.match.findUnique({
     where: { id },
-    select: { id: true, createdBy: true, isFriendly: true },
+    select: { id: true, createdBy: true, isFriendly: true, status: true },
   });
 
   if (!match) {
@@ -122,16 +127,26 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  if (
+    match.status !== "AWAITING_ACCEPTANCE" &&
+    match.status !== "DECLINED"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Match has already started — you can't delete it after acceptance.",
+      },
+      { status: 400 }
+    );
+  }
+
   const tournamentLink = await prisma.tournamentMatch.findFirst({
     where: { matchId: id },
     select: { id: true },
   });
   if (tournamentLink) {
     return NextResponse.json(
-      {
-        error:
-          "This match is part of a tournament and cannot be deleted.",
-      },
+      { error: "This match is part of a tournament and cannot be deleted." },
       { status: 400 }
     );
   }
@@ -176,13 +191,17 @@ export async function PATCH(
   const { action } = body;
 
   if (action === "complete") {
-    return completeMatch(id, actor.prismaUserId);
+    return proposeCompletion(id, actor.prismaUserId, actor.name);
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
 
-async function completeMatch(matchId: string, userId: string) {
+async function proposeCompletion(
+  matchId: string,
+  userId: string,
+  actorName: string | null
+) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
@@ -215,6 +234,18 @@ async function completeMatch(matchId: string, userId: string) {
       { status: 400 }
     );
   }
+  if (match.status === "AWAITING_ACCEPTANCE") {
+    return NextResponse.json(
+      { error: "Opponent hasn't accepted the challenge yet." },
+      { status: 400 }
+    );
+  }
+  if (match.status === "DECLINED") {
+    return NextResponse.json(
+      { error: "Match was declined." },
+      { status: 400 }
+    );
+  }
 
   const outcome = getCompletedMatchOutcome({
     sets: match.sets,
@@ -229,28 +260,20 @@ async function completeMatch(matchId: string, userId: string) {
   }
 
   const { winningTeam, teamAWins, teamBWins } = outcome;
-  const losingTeam = winningTeam === "A" ? "B" : "A";
 
   await prisma.match.update({
     where: { id: matchId },
-    data: { status: "COMPLETED" },
+    data: { status: "AWAITING_CONFIRMATION" },
   });
-
-  if (!match.isFriendly) {
-    await prisma.$transaction((tx) => applyReplayedRankedStats(tx), {
-      timeout: 30_000,
-      maxWait: 10_000,
-    });
-  }
 
   await prisma.eventLog.create({
     data: {
       entityType: "Match",
       entityId: matchId,
-      action: "COMPLETED",
-      previousValue: { status: "ONGOING" },
+      action: "COMPLETION_PROPOSED",
+      previousValue: { status: match.status },
       newValue: {
-        status: "COMPLETED",
+        status: "AWAITING_CONFIRMATION",
         winningTeam,
         teamAWins,
         teamBWins,
@@ -260,86 +283,16 @@ async function completeMatch(matchId: string, userId: string) {
     },
   });
 
-  const tournamentMatch = await prisma.tournamentMatch.findFirst({
-    where: { matchId },
-  });
-
-  if (tournamentMatch) {
-    const winnerId =
-      winningTeam === "A"
-        ? tournamentMatch.teamAId
-        : tournamentMatch.teamBId;
-
-    await prisma.tournamentMatch.update({
-      where: { id: tournamentMatch.id },
-      data: { status: "COMPLETED", winnerId },
-    });
-
-    const nextDeps = await prisma.matchDependency.findMany({
-      where: { dependsOnMatchId: tournamentMatch.id },
-      include: { match: true },
-    });
-
-    for (const dep of nextDeps) {
-      const updateData =
-        dep.slot === "A"
-          ? { teamAId: winnerId }
-          : { teamBId: winnerId };
-
-      await prisma.tournamentMatch.update({
-        where: { id: dep.matchId },
-        data: updateData,
-      });
-
-      const refreshed = await prisma.tournamentMatch.findUnique({
-        where: { id: dep.matchId },
-      });
-
-      if (refreshed?.teamAId && refreshed?.teamBId) {
-        await ensureTournamentPlayableMatch(refreshed.id, userId);
-      }
-    }
-
-    await syncTournamentCompletionAfterMatch(tournamentMatch.id);
-  }
-
   revalidateTag(MATCH_LIST_CACHE_TAG, "max");
-  revalidateTag(LEADERBOARD_CACHE_TAG, "max");
-  revalidateTag(PLAYERS_LIST_CACHE_TAG, "max");
 
-  notifyMatchCompleted(match, winningTeam, teamAWins, teamBWins, userId);
+  notifyCompletionProposed(
+    match,
+    userId,
+    actorName,
+    winningTeam,
+    teamAWins,
+    teamBWins
+  );
 
   return NextResponse.json({ success: true });
-}
-
-function notifyMatchCompleted(
-  match: {
-    id: string;
-    participants: Array<{
-      team: "A" | "B";
-      player: { userId: string; user: { name: string | null } };
-    }>;
-  },
-  winningTeam: "A" | "B",
-  teamAWins: number,
-  teamBWins: number,
-  actorUserId: string
-) {
-  const winnerSets = winningTeam === "A" ? teamAWins : teamBWins;
-  const loserSets = winningTeam === "A" ? teamBWins : teamAWins;
-  const url = `/matches/${match.id}`;
-
-  for (const p of match.participants) {
-    const uid = p.player.userId;
-    if (!uid || uid === actorUserId) continue;
-    const won = p.team === winningTeam;
-    const opponents = match.participants.filter((x) => x.team !== p.team);
-    const opponentNames = firstNamesJoined(
-      opponents.map((x) => x.player.user.name)
-    );
-    const body = won
-      ? `You won ${winnerSets}-${loserSets} vs ${opponentNames}`
-      : `You lost ${loserSets}-${winnerSets} vs ${opponentNames}`;
-    after(() => sendPushToUser(uid, { body, url }));
-  }
 }

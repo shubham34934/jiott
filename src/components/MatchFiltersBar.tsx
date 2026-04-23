@@ -9,7 +9,9 @@ import {
 
 const FILTER_TABS: { key: MatchFilterTab; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "AWAITING_ACCEPTANCE", label: "Pending accept" },
   { key: "ONGOING", label: "Ongoing" },
+  { key: "AWAITING_CONFIRMATION", label: "Pending confirm" },
   { key: "COMPLETED", label: "Completed" },
   { key: "FRIENDLY", label: "Friendly" },
 ];

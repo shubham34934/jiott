@@ -1,5 +1,11 @@
 /** Mirrors `/api/matches` query semantics for client-side filtering. */
-export type MatchFilterTab = "all" | "ONGOING" | "COMPLETED" | "FRIENDLY";
+export type MatchFilterTab =
+  | "all"
+  | "AWAITING_ACCEPTANCE"
+  | "ONGOING"
+  | "AWAITING_CONFIRMATION"
+  | "COMPLETED"
+  | "FRIENDLY";
 
 /** `regular` = exclude bracket matches; `tournament` = only bracket; `all` = both. */
 export type MatchSourceTab = "regular" | "tournament" | "all";
@@ -36,6 +42,18 @@ export function matchPassesFilters(
     return false;
   }
   if (filter === "COMPLETED" && match.status !== "COMPLETED") {
+    return false;
+  }
+  if (
+    filter === "AWAITING_ACCEPTANCE" &&
+    match.status !== "AWAITING_ACCEPTANCE"
+  ) {
+    return false;
+  }
+  if (
+    filter === "AWAITING_CONFIRMATION" &&
+    match.status !== "AWAITING_CONFIRMATION"
+  ) {
     return false;
   }
   if (filter === "FRIENDLY" && !match.isFriendly) {

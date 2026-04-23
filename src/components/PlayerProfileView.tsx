@@ -44,7 +44,7 @@ export type ProfileMatchParticipation = {
   match: {
     id: string;
     type?: "SINGLES" | "DOUBLES";
-    status: "ONGOING" | "COMPLETED" | "DISPUTED";
+    status: string;
     isFriendly?: boolean;
     isTournamentMatch?: boolean;
     tournamentName?: string | null;
@@ -325,7 +325,12 @@ export function PlayerProfileView({
 
       {showHeadToHead && headToHead && (
         <div className="px-4 mt-4">
-          <HeadToHeadCard data={headToHead} themName={player.user.name} />
+          <HeadToHeadCard
+            data={headToHead}
+            themName={player.user.name}
+            meId={viewerPlayerId}
+            themId={player.id}
+          />
         </div>
       )}
 

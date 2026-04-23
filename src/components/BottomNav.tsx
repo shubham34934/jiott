@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   List,
-  Medal,
   Plus,
   Trophy,
+  User,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -21,12 +21,12 @@ type NavTab = { href: string; label: string; icon: LucideIcon };
 
 const leftTabs: NavTab[] = [
   { href: "/matches", label: "Matches", icon: List },
-  { href: "/tournaments", label: "Tournaments", icon: Medal },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
 const rightTabs: NavTab[] = [
   { href: "/players", label: "Players", icon: Users },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export function BottomNav() {

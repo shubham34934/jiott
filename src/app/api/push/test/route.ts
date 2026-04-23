@@ -11,6 +11,7 @@ export async function POST() {
   const result = await sendPushToUser(actor.prismaUserId, {
     body: "Push notifications are working.",
     url: "/profile",
+    type: "generic",
   });
 
   return NextResponse.json(result);

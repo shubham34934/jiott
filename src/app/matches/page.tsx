@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  HeadToHeadBanner,
+  type HeadToHeadData,
+} from "@/components/HeadToHeadCard";
 import {
   DateRangeFilter,
   endOfDay,
@@ -38,24 +43,43 @@ type MatchesApiResponse = {
   total: number;
 };
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function parseSlotParam(raw: string | null): (string | null)[] {
+  const ids = (raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => UUID_RE.test(s))
+    .slice(0, 2);
+  return [ids[0] ?? null, ids[1] ?? null];
+}
+
 export default function MatchesPage() {
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState<MatchFilterTab>("all");
   const [source, setSource] = useState<MatchSourceTab>("regular");
   const [format, setFormat] = useState<MatchFormatTab>("all");
-  const [teamSlots, setTeamSlots] = useState<(string | null)[]>([null, null]);
-  const [opponentSlots, setOpponentSlots] = useState<(string | null)[]>([
-    null,
-    null,
-  ]);
-  const [datePreset, setDatePreset] = useState<DatePreset>("7d");
+  const [teamSlots, setTeamSlots] = useState<(string | null)[]>(() =>
+    parseSlotParam(searchParams.get("team"))
+  );
+  const [opponentSlots, setOpponentSlots] = useState<(string | null)[]>(() =>
+    parseSlotParam(searchParams.get("opponent"))
+  );
+  // Coming from a "See all matches" H2H link — widen the default date window
+  // so users actually see the matches the banner promises.
+  const arrivedFromH2H = !!(
+    searchParams.get("team") && searchParams.get("opponent")
+  );
+  const initialPreset: DatePreset = arrivedFromH2H ? "30d" : "7d";
+  const [datePreset, setDatePreset] = useState<DatePreset>(initialPreset);
   const [dateRange, setDateRange] = useState<DateRange>(() =>
-    presetRange("7d")
+    presetRange(initialPreset)
   );
   const [customFrom, setCustomFrom] = useState<string>(() =>
-    toDateInputValue(presetRange("7d").from)
+    toDateInputValue(presetRange(initialPreset).from)
   );
   const [customTo, setCustomTo] = useState<string>(() =>
-    toDateInputValue(presetRange("7d").to)
+    toDateInputValue(presetRange(initialPreset).to)
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   const [filtersMounted, setFiltersMounted] = useState(false);
@@ -85,6 +109,30 @@ export default function MatchesPage() {
     queryFn: () => fetchPlayersForPicker() as Promise<PlayerOption[]>,
     staleTime: QUERY_STALE_TIME_MS,
   });
+
+  // Only one slot each = a pure head-to-head view → show a compact banner.
+  const teamPicked = teamSlots.filter((x): x is string => !!x);
+  const oppPicked = opponentSlots.filter((x): x is string => !!x);
+  const h2hMeId = teamPicked.length === 1 ? teamPicked[0] : null;
+  const h2hThemId = oppPicked.length === 1 ? oppPicked[0] : null;
+  const isH2HView = !!(h2hMeId && h2hThemId);
+
+  const { data: h2hData } = useQuery<HeadToHeadData>({
+    queryKey: ["h2h", h2hThemId, h2hMeId],
+    queryFn: () =>
+      apiGet(
+        `/api/players/${h2hThemId}/head-to-head?vs=${h2hMeId}`
+      ).then((r) => r.json()),
+    enabled: isH2HView,
+    staleTime: QUERY_STALE_TIME_MS,
+  });
+
+  const nameOf = (id: string | null): string | null => {
+    if (!id) return null;
+    return (
+      teamPlayerOptions.find((p) => p.id === id)?.user.name ?? null
+    );
+  };
 
   const teamKey = teamSlots.filter((x): x is string => !!x).join(",");
   const oppKey = opponentSlots.filter((x): x is string => !!x).join(",");
@@ -133,7 +181,12 @@ export default function MatchesPage() {
       const params = new URLSearchParams();
       params.set("offset", String(pageParam));
       params.set("limit", String(MATCHES_PAGE_SIZE));
-      if (filter === "ONGOING" || filter === "COMPLETED") {
+      if (
+        filter === "ONGOING" ||
+        filter === "COMPLETED" ||
+        filter === "AWAITING_ACCEPTANCE" ||
+        filter === "AWAITING_CONFIRMATION"
+      ) {
         params.set("status", filter);
       } else if (filter === "FRIENDLY") {
         params.set("friendly", "true");
@@ -219,6 +272,18 @@ export default function MatchesPage() {
         showOutcome={false}
         clearDefaults={{ source: "regular" }}
       />
+
+      {isH2HView && h2hData && (
+        <HeadToHeadBanner
+          data={h2hData}
+          meName={nameOf(h2hMeId)}
+          themName={nameOf(h2hThemId)}
+          onClear={() => {
+            setTeamSlots([null, null]);
+            setOpponentSlots([null, null]);
+          }}
+        />
+      )}
 
       <MatchListCards matches={matches} isLoading={isLoading} />
 

@@ -1,4 +1,12 @@
-import { AlertTriangle, CheckCircle2, Clock, Lock } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Hourglass,
+  Lock,
+  MailQuestion,
+  XCircle,
+} from "lucide-react";
 
 interface StatusBadgeProps {
   status: string;
@@ -37,6 +45,27 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning bg-warning/15 rounded-full px-2.5 py-1">
           <AlertTriangle size={14} className="shrink-0" />
           Disputed
+        </span>
+      );
+    case "AWAITING_ACCEPTANCE":
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/15 rounded-full px-2.5 py-1">
+          <MailQuestion size={14} className="shrink-0" />
+          Awaiting acceptance
+        </span>
+      );
+    case "AWAITING_CONFIRMATION":
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning bg-warning/15 rounded-full px-2.5 py-1">
+          <Hourglass size={14} className="shrink-0" />
+          Awaiting confirmation
+        </span>
+      );
+    case "DECLINED":
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-danger bg-danger/15 rounded-full px-2.5 py-1">
+          <XCircle size={14} className="shrink-0" />
+          Declined
         </span>
       );
     case "READY":

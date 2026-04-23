@@ -72,13 +72,15 @@ export default function PlayerProfilePage({
         player={player}
         viewerPlayerId={viewerPlayerId}
         actionSlot={
-          <div className="px-4 mt-4">
-            <Link href={`/matches/new?opponent=${id}`}>
-              <Button fullWidth size="lg">
-                Challenge Player
-              </Button>
-            </Link>
-          </div>
+          viewerPlayerId && viewerPlayerId !== id ? (
+            <div className="px-4 mt-4">
+              <Link href={`/matches/new?opponent=${id}`}>
+                <Button fullWidth size="lg">
+                  Challenge Player
+                </Button>
+              </Link>
+            </div>
+          ) : null
         }
       />
     </div>

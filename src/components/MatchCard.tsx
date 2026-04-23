@@ -2,9 +2,10 @@
 
 import { Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Clock, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { PlayerProfileLink } from "@/components/PlayerProfileLink";
 import { RatingDeltaBadge } from "@/components/RatingDeltaBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { formatDisplayDate } from "@/lib/formatDisplayDate";
 
 interface Player {
@@ -25,7 +26,7 @@ interface SetData {
 
 interface MatchCardProps {
   id: string;
-  status: "ONGOING" | "COMPLETED" | "DISPUTED";
+  status: string;
   participants: Participant[];
   sets: SetData[];
   createdAt: string;
@@ -113,22 +114,7 @@ export function MatchCard({
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex flex-wrap items-center gap-2">
-          {status === "COMPLETED" ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral bg-background rounded-full px-2.5 py-1">
-              <CheckCircle2 size={14} className="text-success" />
-              Completed
-            </span>
-          ) : status === "DISPUTED" ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning bg-warning/15 rounded-full px-2.5 py-1">
-              <AlertTriangle size={14} className="shrink-0" />
-              Disputed
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-success rounded-full px-2.5 py-1">
-              <Clock size={14} />
-              Ongoing
-            </span>
-          )}
+          <StatusBadge status={status} />
           {isFriendly && (
             <span className="inline-flex items-center text-xs font-medium text-primary bg-primary/15 rounded-full px-2.5 py-1">
               Friendly
