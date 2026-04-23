@@ -1,4 +1,4 @@
-const CACHE_NAME = "jiott-v1";
+const CACHE_NAME = "jiott-v2";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -42,5 +42,47 @@ self.addEventListener("fetch", (event) => {
 
       return cached || fetchPromise;
     })
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "JioTT", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "JioTT";
+  const body = data.body || "";
+  const url = data.url || "/";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/logo.svg",
+      badge: "/logo.svg",
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((list) => {
+        for (const client of list) {
+          if ("focus" in client) {
+            try {
+              client.navigate(url);
+            } catch {
+              /* some browsers disallow cross-origin navigate */
+            }
+            return client.focus();
+          }
+        }
+        return self.clients.openWindow(url);
+      })
   );
 });
