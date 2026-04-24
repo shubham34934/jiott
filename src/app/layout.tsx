@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppHeader } from "@/components/AppHeader";
@@ -64,8 +65,13 @@ export default function RootLayout({
                   {children}
                   {/* <Footer /> */}
                 </main>
-                <BottomNav />
-                <NewMatchModal />
+                {/* Both BottomNav and NewMatchModal read `useSearchParams`.
+                    Wrapping in Suspense lets Next.js statically prerender
+                    simple pages (e.g., /auth/*) without bailing out. */}
+                <Suspense fallback={null}>
+                  <BottomNav />
+                  <NewMatchModal />
+                </Suspense>
                 <ServiceWorkerRegister />
               </PullToRefresh>
             </AuthGuard>
