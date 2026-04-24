@@ -124,13 +124,13 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative md:contents">
-      {/* Top strip — only mobile */}
+      {/* Top strip — only mobile, sits below the fixed AppHeader (~56px) */}
       {showStrip && (
         <div
           className="md:hidden fixed left-0 right-0 z-[45] flex flex-col items-center justify-end pointer-events-none px-4"
           style={{
-            top: 0,
-            paddingTop: "max(0.35rem, env(safe-area-inset-top))",
+            top: "calc(3.5rem + env(safe-area-inset-top))",
+            paddingTop: "0.35rem",
             height: `${REFRESH_SHIFT + 8}px`,
             opacity: refreshing ? 1 : Math.min(1, pull / THRESHOLD + 0.15),
           }}

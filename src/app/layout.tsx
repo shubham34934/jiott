@@ -59,21 +59,21 @@ export default function RootLayout({
         <AuthProvider>
           <QueryProvider>
             <AuthGuard>
+              <AppHeader />
               <PullToRefresh>
-                <AppHeader />
                 <main className="pb-20 max-w-lg mx-auto min-h-dvh">
                   {children}
                   {/* <Footer /> */}
                 </main>
-                {/* Both BottomNav and NewMatchModal read `useSearchParams`.
-                    Wrapping in Suspense lets Next.js statically prerender
-                    simple pages (e.g., /auth/*) without bailing out. */}
-                <Suspense fallback={null}>
-                  <BottomNav />
-                  <NewMatchModal />
-                </Suspense>
-                <ServiceWorkerRegister />
               </PullToRefresh>
+              {/* Both BottomNav and NewMatchModal read `useSearchParams`.
+                  Wrapping in Suspense lets Next.js statically prerender
+                  simple pages (e.g., /auth/*) without bailing out. */}
+              <Suspense fallback={null}>
+                <BottomNav />
+                <NewMatchModal />
+              </Suspense>
+              <ServiceWorkerRegister />
             </AuthGuard>
           </QueryProvider>
         </AuthProvider>
